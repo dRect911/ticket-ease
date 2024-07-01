@@ -1,33 +1,25 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from './supabaseClient';
+"use client"
 
-export function withAuth(Component: React.FC) {
-  return function AuthComponent(props: any) {
-    const [user, setUser] = useState<any>(null);
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
+
+const withAuth = (WrappedComponent: any) => {
+  return (props: any) => {
     const router = useRouter();
 
     useEffect(() => {
-      const session = supabase.auth.getSession();
-      setUser(session?.user ?? null);
-
-      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-        setUser(session?.user ?? null);
-        if (!session?.user) {
-          router.push('/login');
+      const checkUser = async () => {
+        const { data, error } = await supabase.auth.getSession();
+        if (!data || !data.session) {
+          router.push("/auth/login"); // Redirect to login page if not authenticated
         }
-      });
-
-      return () => {
-        authListener?.unsubscribe();
       };
+      checkUser();
     }, [router]);
 
-    if (!user) {
-      return null;
-    }
-
-    return <Component {...props} />;
+    return <WrappedComponent {...props} />;
   };
-}
-  
+};
+
+export default withAuth;
