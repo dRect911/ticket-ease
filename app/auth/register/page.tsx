@@ -23,10 +23,10 @@ import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
 
 const formSchema = z.object({
-  firstname: z.string().min(2, {
+  first_name: z.string().min(2, {
     message: "Username must be at least 2 characters.",
   }),
-  lastname: z.string().min(2, {
+  last_name: z.string().min(2, {
     message: "Username must be at least 2 characters.",
   }),
   email: z.string().min(2, {
@@ -36,7 +36,6 @@ const formSchema = z.object({
     message: "Password must be at least 2 characters.",
   }),
 });
-
 
 // import RegisterForm from "@/components/register-form";
 
@@ -49,21 +48,12 @@ export default function Register() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      firstname: "",
-      lastname: "",
+      first_name: "",
+      last_name: "",
       email: "",
       password: "",
     },
   });
-
-  // 3. Define a loading state.
-  useEffect(() => {
-    if (loading) {
-      toast({
-        description: "Registering...",
-      });
-    }
-  }, [loading]);
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
@@ -77,8 +67,9 @@ export default function Register() {
       password: values.password,
       options: {
         data: {
-          firstname: values.firstname,
-          lastname: values.lastname,
+          first_name: values.first_name,
+          last_name: values.last_name,
+          role: "user",
         },
       },
     });
@@ -94,9 +85,18 @@ export default function Register() {
         title: "Registration successful!",
         description: "Please check your email for verification.",
       });
-      router.push("/login");
+      router.push("/auth/login");
     }
   }
+
+  // 3. Define a loading state.
+  useEffect(() => {
+    if (loading) {
+      toast({
+        description: "Registering...",
+      });
+    }
+  }, [loading]);
 
   return (
     <div>
@@ -104,13 +104,13 @@ export default function Register() {
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <FormField
             control={form.control}
-            name="firstname"
+            name="first_name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>First name</FormLabel>
                 <FormControl>
                   <Input
-                  required
+                    required
                     disabled={loading}
                     placeholder="First name"
                     {...field}
@@ -125,13 +125,13 @@ export default function Register() {
           />
           <FormField
             control={form.control}
-            name="lastname"
+            name="last_name"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Last name</FormLabel>
                 <FormControl>
                   <Input
-                  required
+                    required
                     disabled={loading}
                     placeholder="Last name"
                     {...field}
