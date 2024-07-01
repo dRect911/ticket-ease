@@ -25,9 +25,9 @@ export default function Home() {
     } else {
       toast({
         title: "Logout successful!",
-        description: "You will be rdirected to home page",
+        description: "You will be rdirected to login page",
       });
-      router.push("/");
+      router.push("/auth/login");
     }
   };
 
@@ -36,7 +36,7 @@ export default function Home() {
   useEffect(() => {
     const checkUser = async () => {
       const session = await supabase.auth.getSession();
-      if (session.data) {
+      if (session.data.session) {
         setIsAuthenticated(true);
       } else {
         setIsAuthenticated(false);
