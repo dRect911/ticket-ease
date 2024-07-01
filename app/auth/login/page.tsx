@@ -84,7 +84,7 @@ const Login: React.FC = () => {
         title: "Login successful!",
         description: "You will be redirected to the dashboard.",
       });
-      router.push("/");
+      router.push("/dashboard");
     }
   }
 
