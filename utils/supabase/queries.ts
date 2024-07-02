@@ -1,7 +1,21 @@
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import { cache } from "react";
 import { supabase } from "./client";
-import { Bus, Location, Route, Travel } from "@/types";
+import {
+  Bus,
+  Location,
+  Route,
+  Travel,
+  Ticket,
+  Booking,
+  bookingSchema,
+  routeSchema,
+  busSchema,
+  travelSchema,
+  ticketSchema,
+} from "@/types";
+import { z } from "zod";
+
 
 
 
@@ -25,7 +39,9 @@ export async function createLocation(
   }
 }
 
-export async function createRoute(route: Route): Promise<Route | null> {
+export async function createRoute(
+  route: z.infer<typeof routeSchema>
+): Promise<Route | null> {
   try {
     const { data, error } = await supabase.from("routes").insert(route);
 
@@ -39,7 +55,9 @@ export async function createRoute(route: Route): Promise<Route | null> {
   }
 }
 
-export async function createBus(bus: Bus): Promise<Bus | null> {
+export async function createBus(
+  bus: z.infer<typeof busSchema>
+): Promise<Bus | null> {
   try {
     const { data, error } = await supabase.from("buses").insert(bus);
 
@@ -53,18 +71,50 @@ export async function createBus(bus: Bus): Promise<Bus | null> {
   }
 }
 
-export async function createTravel(travel: Travel): Promise<Travel | null> {
+export async function createTravel(
+  travel: z.infer<typeof travelSchema>
+): Promise<Travel | null> {
   try {
-    const { data, error } = await supabase
-      .from('travels')
-      .insert(travel);
+    const { data, error } = await supabase.from("travels").insert(travel);
 
     if (error) throw error;
 
     if (data) return data?.[0] as Travel; // Check for both data and data[0] being defined
-    return null 
+    return null;
   } catch (error) {
-    console.error('Error creating travel:', error);
+    console.error("Error creating travel:", error);
+    return null;
+  }
+}
+
+export async function createTicket(
+  ticket: z.infer<typeof ticketSchema>
+): Promise<Ticket | null> {
+  try {
+    const { data, error } = await supabase.from("tickets").insert(ticket);
+
+    if (error) throw error;
+
+    if (data) return data[0] as Ticket; // Assuming single record inserted
+    return null;
+  } catch (error) {
+    console.error("Error creating ticket:", error);
+    return null;
+  }
+}
+
+export async function createBooking(
+  booking: z.infer<typeof bookingSchema>
+): Promise<Booking | null> {
+  try {
+    const { data, error } = await supabase.from("bookings").insert(booking);
+
+    if (error) throw error;
+
+    if (data) return data[0] as Booking; // Assuming single record inserted
+    return null;
+  } catch (error) {
+    console.error("Error creating booking:", error);
     return null;
   }
 }
@@ -112,9 +162,7 @@ export async function getAllLocations(): Promise<Location[]> {
   }
 }
 
-export async function getLocationById(
-  locationId: string
-): Promise<Location | null> {
+export async function getLocationById(locationId: string): Promise<Location | null> {
   try {
     const { data, error } = await supabase
       .from("locations")
@@ -189,15 +237,13 @@ export async function getBusById(busId: string): Promise<Bus | null> {
 
 export async function getAllTravels(): Promise<Travel[]> {
   try {
-    const { data, error } = await supabase
-      .from('travels')
-      .select('*');
+    const { data, error } = await supabase.from("travels").select("*");
 
     if (error) throw error;
 
     return data as Travel[];
   } catch (error) {
-    console.error('Error fetching travels:', error);
+    console.error("Error fetching travels:", error);
     return [];
   }
 }
@@ -205,15 +251,75 @@ export async function getAllTravels(): Promise<Travel[]> {
 export async function getTravelById(travelId: string): Promise<Travel | null> {
   try {
     const { data, error } = await supabase
-      .from('travels')
-      .select('*')
-      .eq('travel_id', travelId);
+      .from("travels")
+      .select("*")
+      .eq("travel_id", travelId);
 
     if (error) throw error;
 
-    return data[0] as Travel || null; // Check for empty data
+    return (data[0] as Travel) || null; // Check for empty data
   } catch (error) {
-    console.error('Error fetching travel:', error);
+    console.error("Error fetching travel:", error);
+    return null;
+  }
+}
+
+export async function getAllTickets(): Promise<Ticket[]> {
+  try {
+    const { data, error } = await supabase.from("tickets").select("*");
+
+    if (error) throw error;
+
+    return data as Ticket[];
+  } catch (error) {
+    console.error("Error fetching tickets:", error);
+    return [];
+  }
+}
+
+export async function getTicketById(ticketId: string): Promise<Ticket | null> {
+  try {
+    const { data, error } = await supabase
+      .from("tickets")
+      .select("*")
+      .eq("ticket_id", ticketId);
+
+    if (error) throw error;
+
+    return (data[0] as Ticket) || null; // Check for empty data
+  } catch (error) {
+    console.error("Error fetching ticket:", error);
+    return null;
+  }
+}
+
+export async function getAllBookings(): Promise<Booking[]> {
+  try {
+    const { data, error } = await supabase.from("bookings").select("*");
+
+    if (error) throw error;
+
+    return data as Booking[];
+  } catch (error) {
+    console.error("Error fetching bookings:", error);
+    return [];
+  }
+}
+
+export async function getBookingById(
+  bookingId: string
+): Promise<Booking | null> {
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("booking_id", bookingId);
+
+    if (error) throw error;
+
+    return (data[0] as Booking) || null; // Check for empty data
+  } catch (error) {
+    console.error("Error fetching booking:", error);
     return null;
   }
 }
@@ -283,15 +389,51 @@ export async function updateTravel(travel: Travel): Promise<Travel | null> {
 
   try {
     const { data, error } = await supabase
-      .from('travels')
+      .from("travels")
       .update(travelData)
-      .eq('travel_id', travel_id);
+      .eq("travel_id", travel_id);
 
     if (error) throw error;
 
     return { ...travel }; // Return updated travel object
   } catch (error) {
-    console.error('Error updating travel:', error);
+    console.error("Error updating travel:", error);
+    return null;
+  }
+}
+
+export async function updateTicket(ticket: Ticket): Promise<Ticket | null> {
+  const { ticket_id, ...ticketData } = ticket; // Destructure ticket_id for update
+
+  try {
+    const { data, error } = await supabase
+      .from("tickets")
+      .update(ticketData)
+      .eq("ticket_id", ticket_id);
+
+    if (error) throw error;
+
+    return { ...ticket }; // Return updated ticket object
+  } catch (error) {
+    console.error("Error updating ticket:", error);
+    return null;
+  }
+}
+
+export async function updateBooking(booking: Booking): Promise<Booking | null> {
+  const { booking_id, ...bookingData } = booking; // Destructure booking_id for update
+
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .update(bookingData)
+      .eq("booking_id", booking_id);
+
+    if (error) throw error;
+
+    return { ...booking }; // Return updated booking object
+  } catch (error) {
+    console.error("Error updating booking:", error);
     return null;
   }
 }
@@ -347,15 +489,47 @@ export async function deleteBus(busId: string): Promise<boolean> {
 export async function deleteTravel(travelId: string): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from('travels')
+      .from("travels")
       .delete()
-      .eq('travel_id', travelId);
+      .eq("travel_id", travelId);
 
     if (error) throw error;
 
     return true;
   } catch (error) {
-    console.error('Error deleting travel:', error);
+    console.error("Error deleting travel:", error);
+    return false;
+  }
+}
+
+export async function deleteTicket(ticketId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("tickets")
+      .delete()
+      .eq("ticket_id", ticketId);
+
+    if (error) throw error;
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting ticket:", error);
+    return false;
+  }
+}
+
+export async function deleteBooking(bookingId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from("bookings")
+      .delete()
+      .eq("booking_id", bookingId);
+
+    if (error) throw error;
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting booking:", error);
     return false;
   }
 }

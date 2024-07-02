@@ -37,3 +37,22 @@ export const travelSchema = z.object({
 });
 
 export interface Travel extends z.infer<typeof travelSchema> {}
+
+export const ticketSchema = z.object({
+  ticket_id: z.string().uuid(), // Assuming UUID for ticket_id
+  travel_id: z.string().uuid(), // References travels(travel_id)
+  seat_number: z.number().positive().int(), // Seat number must be positive integer
+  status: z.enum(['booked', 'available']), // Status must be either 'booked' or 'available'
+});
+
+export interface Ticket extends z.infer<typeof ticketSchema> {}
+
+export const bookingSchema = z.object({
+  booking_id: z.string().uuid(), // Assuming UUID for booking_id
+  user_id: z.string().uuid(), // References users(user_id)
+  ticket_id: z.string().uuid(), // References tickets(ticket_id)
+  booking_date: z.date().optional(), // Allow optional booking_date (defaults to now())
+});
+
+export interface Booking extends z.infer<typeof bookingSchema> {}
+
