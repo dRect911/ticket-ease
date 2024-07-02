@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import useLogout from "@/hooks/useLogout";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
+import { isAdmin } from "@/lib/isAdmin";
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -46,6 +47,8 @@ export default function Home() {
 
     
   }, []);
+
+  const admin = isAdmin(supabase) 
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">

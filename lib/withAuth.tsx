@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 
 const withAuth = (WrappedComponent: any) => {
   return (props: any) => {

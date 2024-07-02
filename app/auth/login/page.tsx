@@ -1,7 +1,7 @@
 "use client";
 
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -39,6 +39,7 @@ const Login: React.FC = () => {
     },
   });
 
+  
   // 3. Define a loading state.
   useEffect(() => {
     if (loading) {
@@ -48,24 +49,9 @@ const Login: React.FC = () => {
     }
   }, [loading]);
 
-  /*   const handleLogin = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      alert(error.message);
-    } else {
-      alert('Login successful!');
-      router.push('/dashboard');
-    }
-  }; */
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values);
 
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
@@ -73,6 +59,7 @@ const Login: React.FC = () => {
       password: values.password,
     });
     setLoading(false);
+
     if (error) {
       toast({
         variant: "destructive",

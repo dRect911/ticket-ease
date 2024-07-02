@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/utils/supabase/client";
 // import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 
