@@ -30,6 +30,7 @@ function Dashboard() {
       {userData && (
           <>
             <p className="text-5xl font-bold p-4">Welcome {userData.first_name} </p>
+            <p className="text-3xl font-bold p-4">Your role is {userData.role}</p>
             <p className="text-3xl font-bold p-4">If you got here you are logged in</p>
             <Button asChild>
               <Link href="/">Back to home page</Link>
