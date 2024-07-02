@@ -7,7 +7,6 @@ import Link from "next/link";
 import useLogout from "@/hooks/useLogout";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
-import { isAdmin } from "@/lib/isAdmin";
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
