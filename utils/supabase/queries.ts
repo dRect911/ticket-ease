@@ -18,7 +18,6 @@ import { z } from "zod";
 
 
 
-
 /* CREATE ACTIONS */
 
 export async function createLocation(
@@ -178,6 +177,26 @@ export async function getLocationById(locationId: string): Promise<Location | nu
   }
 }
 
+export async function getLocationNameById(locationId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from("locations")
+      .select("location_name")
+      .eq("location_id", locationId)
+      .single();
+
+    if (error) throw error;
+
+    if (!data) return null;
+
+    return data.location_name;
+  } catch (error) {
+    console.error("Error fetching location name:", error);
+    return null;
+  }
+}
+
+
 export async function getAllRoutes(): Promise<Route[]> {
   try {
     const { data, error } = await supabase.from("routes").select("*");
@@ -206,6 +225,49 @@ export async function getRouteById(routeId: string): Promise<Route | null> {
   }
 }
 
+export async function getRouteIdByTravelId(travelId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from("travels")
+      .select("route_id")
+      .eq("travel_id", travelId)
+      .single();
+
+    if (error) throw error;
+
+    if (!data) return null;
+
+    return data.route_id;
+  } catch (error) {
+    console.error("Error fetching route ID:", error);
+    return null;
+  }
+}
+
+
+export async function getRouteLocations(routeId: string): Promise<{ startLocationId: string; endLocationId: string } | null> {
+  try {
+    const { data, error } = await supabase
+      .from("routes")
+      .select("start_location_id, end_location_id")
+      .eq("route_id", routeId)
+      .single();
+
+    if (error) throw error;
+
+    if (!data) return null;
+
+    return {
+      startLocationId: data.start_location_id,
+      endLocationId: data.end_location_id,
+    };
+  } catch (error) {
+    console.error("Error fetching route locations:", error);
+    return null;
+  }
+}
+
+
 export async function getAllBuses(): Promise<Bus[]> {
   try {
     const { data, error } = await supabase.from("buses").select("*");
@@ -214,6 +276,7 @@ export async function getAllBuses(): Promise<Bus[]> {
 
     return data as Bus[];
   } catch (error) {
+    
     console.error("Error fetching buses:", error);
     return [];
   }
@@ -234,6 +297,65 @@ export async function getBusById(busId: string): Promise<Bus | null> {
     return null;
   }
 }
+
+export async function getPlateNumberByBusId(busId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from("buses")
+      .select("plate_number")
+      .eq("bus_id", busId)
+      .single();
+
+    if (error) throw error;
+
+    if (!data) return null;
+
+    return data.plate_number;
+  } catch (error) {
+    console.error("Error fetching plate number:", error);
+    return null;
+  }
+}
+
+export async function getDriverIdByBusId(busId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from("buses")
+      .select("driver_id")
+      .eq("bus_id", busId)
+      .single();
+
+    if (error) throw error;
+
+    if (!data) return null;
+
+    return data.driver_id;
+  } catch (error) {
+    console.error("Error fetching driver ID:", error);
+    return null;
+  }
+}
+
+
+export async function getBusIdByTravelId(travelId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from("travels")
+      .select("bus_id")
+      .eq("travel_id", travelId)
+      .single();
+
+    if (error) throw error;
+
+    if (!data) return null;
+
+    return data.bus_id;
+  } catch (error) {
+    console.error("Error fetching bus ID:", error);
+    return null;
+  }
+}
+
 
 export async function getAllTravels(): Promise<Travel[]> {
   try {
@@ -261,6 +383,29 @@ export async function getTravelById(travelId: string): Promise<Travel | null> {
   } catch (error) {
     console.error("Error fetching travel:", error);
     return null;
+  }
+}
+
+export async function getLatestTravels(amount: number): Promise<Travel[]> {
+  if (amount > 0) {
+    amount = Math.min(amount, 100); // Limit to 100 records for performance reasons
+    try {
+    const { data, error } = await supabase
+      .from("travels")
+      .select("*")
+      .order("date", { ascending: false })
+      .limit(amount);
+
+    if (error) throw error;
+
+    return data as Travel[];
+  } catch (error) {
+    console.error("Error fetching latest travels:", error);
+    return [];
+  }
+  }else{
+    console.log("Invalid amount. Please provide a positive integer.");
+    return [];
   }
 }
 
