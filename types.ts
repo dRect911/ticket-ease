@@ -33,6 +33,7 @@ export const travelSchema = z.object({
   travel_id: z.string().uuid(), // Assuming UUID for travel_id
   bus_id: z.string().uuid(), // References buses(bus_id)
   route_id: z.string().uuid(), // References routes(route_id)
+  price: z.number().positive().int(),
   travel_date: z.date(), // Travel date must be a valid date
 });
 
