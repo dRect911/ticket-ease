@@ -49,16 +49,43 @@ type Props = {
 
 const LatestTravelsTable = () => {
   const [travels, setTravels] = useState<Travel[]>([]);
+
+  const [renderedTravels, setRenderedTravels] = useState<any[]>([]);
   useEffect(() => {
     const fetchData = async () => {
       const latestTravels = await getLatestTravels(5);
       setTravels(latestTravels);
+      const travelDetails = await Promise.all(
+        latestTravels.map(async (travel) => {
+          const busId = await getBusIdByTravelId(travel.travel_id);
+          const plateNumber = await getPlateNumberByBusId(busId as string);
+          const routeId = await getRouteIdByTravelId(travel.travel_id);
+          const locations = await getRouteLocations(routeId as string);
+
+          // Extract departure and arrival locations from locations
+          const departureId = locations?.startLocationId;
+          const arrivalId = locations?.endLocationId;
+
+          const departureName = await getLocationNameById(
+            departureId as string
+          );
+          const arrivalName = await getLocationNameById(arrivalId as string);
+
+          return {
+            ...travel,
+            plateNumber,
+            departureName,
+            arrivalName,
+          };
+        })
+      );
+      setRenderedTravels(travelDetails);
     };
 
     fetchData();
-  }, []);
+  }, [travels, renderedTravels]);
 
-  const renderTravelRow = async ({travel}: {travel: Travel})  => {
+  const renderTravelRow = async ({ travel }: { travel: Travel }) => {
     const busId = await getBusIdByTravelId(travel.travel_id);
     const plateNumber = await getPlateNumberByBusId(busId as string);
     const routeId = await getRouteIdByTravelId(travel.travel_id);
@@ -110,6 +137,7 @@ const LatestTravelsTable = () => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="">Date</TableHead>
               <TableHead>Departure</TableHead>
               <TableHead className="">Arrival</TableHead>
               <TableHead className="">Bus</TableHead>
@@ -117,22 +145,42 @@ const LatestTravelsTable = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-          {travels.length > 0 
-                ? (
-                    <TableRow>
-                        <TableCell colSpan={4} className="text-center">
-                        No recent travels found.
-                        </TableCell>
-                    </TableRow>
-                ) 
-                : (
-                    <TableRow>
-                        <TableCell colSpan={4} className="text-center">
-                        No recent travels found.
-                        </TableCell>
-                    </TableRow>
-                    )
-                }
+            {renderedTravels.length > 0 ? (
+              renderedTravels.map((travel) => (
+                <TableRow key={travel.travel_id}>
+                  <TableCell>
+                    <div className="font-medium">
+                      {new Date(travel.travel_date).toLocaleDateString(
+                        "en-US",
+                        {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        }
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{travel.departureName}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{travel.arrivalName}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-medium">{travel.plateNumber}</div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="font-medium">{travel.price}</div>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  No recent travels found.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </CardContent>
