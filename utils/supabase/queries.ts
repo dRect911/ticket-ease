@@ -15,39 +15,52 @@ import {
   ticketSchema,
 } from "@/types";
 import { z } from "zod";
+import { useToast } from "@/components/ui/use-toast";
 
 
 
 /* CREATE ACTIONS */
 
 export async function createLocation(
-  locationName: string
-): Promise<Location | null> {
+  location_name: string
+): Promise<Location | null | true> {
   try {
     const { data, error } = await supabase
       .from("locations")
-      .insert({ locationName });
+      .insert({ location_name });
 
     if (error) throw error;
 
-    if (data) return data[0] as Location; // Assuming single record inserted
-    return null;
+    if (data) return data as Location; // Assuming single record inserted
+    return true;
   } catch (error) {
     console.error("Error creating location:", error);
+    
     return null;
   }
 }
-
+const routeSchema = z.object({
+  start_location_id: z.string().min(1, "Start location is required"),
+  end_location_id: z.string().min(1, "End location is required"),
+  distance: z.number().positive("Distance must be a positive number").transform((val) => parseFloat(val as any))
+  .refine((val) => !isNaN(val) && val > 0, {
+    message: "Distance must be a positive number",
+  }),
+  duration: z.string().min(1),
+}).refine((data) => data.start_location_id !== data.end_location_id, {
+  message: "Start and end locations must be different",
+  path: ["end_location_id"], // specify the path to show the error
+});
 export async function createRoute(
-  route: z.infer<typeof routeSchema>
-): Promise<Route | null> {
+  route: z.infer<typeof routeSchema >
+): Promise<Route | null | true> {
   try {
     const { data, error } = await supabase.from("routes").insert(route);
 
     if (error) throw error;
 
     if (data) return data[0] as Route; // Assuming single record inserted
-    return null;
+    return true;
   } catch (error) {
     console.error("Error creating route:", error);
     return null;
@@ -393,7 +406,7 @@ export async function getLatestTravels(amount: number): Promise<Travel[]> {
     const { data, error } = await supabase
       .from("travels")
       .select("*")
-      .order("date", { ascending: false })
+      .order("travel_date", { ascending: false })
       .limit(amount);
 
     if (error) throw error;
@@ -599,6 +612,7 @@ export async function deleteLocation(locationId: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error("Error deleting location:", error);
+    
     return false;
   }
 }
