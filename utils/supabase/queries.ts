@@ -9,7 +9,7 @@ import {
   Ticket,
   Booking,
   bookingSchema,
-  routeSchema,
+  // routeSchema,
   busSchema,
   travelSchema,
   ticketSchema,
