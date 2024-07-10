@@ -60,7 +60,7 @@ export interface Booking extends z.infer<typeof bookingSchema> {}
 export const profileSchema = z.object({
   id: z.string().uuid(),
   email: z.string().email(),
-  role: z.enum(["user", "admin", "dirver"]),
+  role: z.enum(["user", "admin", "driver"]),
   first_name: z.string().min(1),
   last_name: z.string().min(1),
 });
