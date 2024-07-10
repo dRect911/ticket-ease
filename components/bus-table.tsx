@@ -47,123 +47,97 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Route } from "@/types";
+import { Bus } from "@/types";
 import {
-  deleteRoute,
-  getAllRoutes,
+  deleteBus,
+  getAllBuses,
   getLocationNameById,
 } from "@/utils/supabase/queries";
-import RouteForm from "@/components/route-form";
+import BusForm from "@/components/bus-form";
 import { useToast } from "./ui/use-toast";
 
-const columns: ColumnDef<Route>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "start_location_name",
-    header: "Start Location",
-    cell: ({ row }) => {
-      /* const route = row.original;
-      const start_location_name = getLocationNameById(route.start_location_id);
-      if (!start_location_name) {
-        return <div>Loading...</div>;
-      } else {
-        return <div>{start_location_name}</div>;
-      } */
-      return <div>{row.getValue("start_location_name")}</div>;
+const columns: ColumnDef<Bus>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
     },
-  },
-  {
-    accessorKey: "end_location_name",
-    header: "End Location",
-    cell: ({ row }) => {
-      /* const route = row.original;
-      const end_location_name = getLocationNameById(route.end_location_id);
-      if (!end_location_name) {
-        return <div>Loading...</div>;
-      } else {
-        return <div>{end_location_name}</div>;
-      } */
-        return <div>{row.getValue("end_location_name")}</div>;
+    {
+      accessorKey: "bus_id",
+      header: "Bus ID",
+      cell: ({ row }) => <div>{row.getValue("bus_id")}</div>,
     },
-  },
-  {
-    accessorKey: "distance",
-    header: "Distance",
-    cell: ({ row }) => <div>{row.getValue("distance")}</div>,
-  },
-  {
-    accessorKey: "duration",
-    header: "Duration",
-    cell: ({ row }) => <div>{row.getValue("duration")}</div>,
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const route = row.original;
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => console.log("Edit route", route)} // Replace with your edit action
-            >
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={async () => {
-                const deleted = await deleteRoute(route.route_id);
-                /* if (deleted) {
-                  toast({
-                    title: "Route deleted successfully",
-                    description: "You have successfully deleted the route.",
-                  });
-                  fetchData(); // Re-fetch data after deletion
-                } else {
-                  toast({
-                    title: "Error deleting route",
-                    description: "Failed to delete the route.",
-                  });
-                } */
-              }} // Replace with your delete action
-            >
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+    {
+      accessorKey: "plate_number",
+      header: "Plate Number",
+      cell: ({ row }) => <div>{row.getValue("plate_number")}</div>,
     },
-  },
-];
+    {
+      accessorKey: "capacity",
+      header: "Capacity",
+      cell: ({ row }) => <div>{row.getValue("capacity")}</div>,
+    },
+    /* {
+      accessorKey: "driver_id", // Optional driver information
+      header: "Driver ID",
+      cell: ({ row }) => {
+        const driverId = row.getValue("driver_id");
+        return driverId ? <div>{driverId}</div> : <div>-</div>; // Display "-" if no driver
+      },
+    }, */
+    // Add more columns as needed for your bus data
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const bus = row.original;
+        // Replace these actions with your actual logic
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => console.log("Edit bus", bus)} // Replace with your edit action
+              >
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => console.log("Delete bus", bus)} // Replace with your delete action
+              >
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
+  
 
-export function RouteTable() {
+export function BusTable() {
   const { toast } = useToast();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -173,18 +147,12 @@ export function RouteTable() {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [loading, setLoading] = React.useState<boolean>(true);
-  const [data, setData] = React.useState<Route[]>([]);
+  const [data, setData] = React.useState<Bus[]>([]);
   const fetchData = async () => {
     setLoading(true);
-    const routes = await getAllRoutes();
-    const routesWithNames = await Promise.all(
-      routes.map(async (route) => {
-        const start_location_name = await getLocationNameById(route.start_location_id);
-        const end_location_name = await getLocationNameById(route.end_location_id);
-        return { ...route, start_location_name, end_location_name };
-      })
-    );
-    setData(routesWithNames);
+    const buses = await getAllBuses();
+    
+    setData(buses);
     setLoading(false);
   };
   
@@ -247,7 +215,7 @@ export function RouteTable() {
             </Tooltip>
           </TooltipProvider>
 
-          <RouteForm />
+          <BusForm />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
