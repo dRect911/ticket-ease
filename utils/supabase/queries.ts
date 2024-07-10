@@ -13,13 +13,28 @@ import {
   busSchema,
   travelSchema,
   ticketSchema,
+  Profile,
 } from "@/types";
 import { z } from "zod";
 import { useToast } from "@/components/ui/use-toast";
 
-
-
 /* CREATE ACTIONS */
+
+export async function createProfile(
+  profileData: Profile
+): Promise<Profile | undefined> {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .insert([profileData]);
+
+    if (error) throw error;
+
+    if (data) return data[0] as Profile;
+  } catch (error) {
+    console.error("Error creating profile:", error);
+  }
+}
 
 export async function createLocation(
   location_name: string
@@ -35,24 +50,29 @@ export async function createLocation(
     return true;
   } catch (error) {
     console.error("Error creating location:", error);
-    
+
     return null;
   }
 }
-const routeSchema = z.object({
-  start_location_id: z.string().min(1, "Start location is required"),
-  end_location_id: z.string().min(1, "End location is required"),
-  distance: z.number().positive("Distance must be a positive number").transform((val) => parseFloat(val as any))
-  .refine((val) => !isNaN(val) && val > 0, {
-    message: "Distance must be a positive number",
-  }),
-  duration: z.string().min(1),
-}).refine((data) => data.start_location_id !== data.end_location_id, {
-  message: "Start and end locations must be different",
-  path: ["end_location_id"], // specify the path to show the error
-});
+const routeSchema = z
+  .object({
+    start_location_id: z.string().min(1, "Start location is required"),
+    end_location_id: z.string().min(1, "End location is required"),
+    distance: z
+      .number()
+      .positive("Distance must be a positive number")
+      .transform((val) => parseFloat(val as any))
+      .refine((val) => !isNaN(val) && val > 0, {
+        message: "Distance must be a positive number",
+      }),
+    duration: z.string().min(1),
+  })
+  .refine((data) => data.start_location_id !== data.end_location_id, {
+    message: "Start and end locations must be different",
+    path: ["end_location_id"], // specify the path to show the error
+  });
 export async function createRoute(
-  route: z.infer<typeof routeSchema >
+  route: z.infer<typeof routeSchema>
 ): Promise<Route | null | true> {
   try {
     const { data, error } = await supabase.from("routes").insert(route);
@@ -131,8 +151,6 @@ export async function createBooking(
   }
 }
 
-
-
 /* READ ACTIONS */
 
 export const getUser = cache(
@@ -143,6 +161,34 @@ export const getUser = cache(
     return user;
   }
 );
+
+export const getAllUsers = async () => {
+  try {
+    const {
+      data: { users },
+      error,
+    } = await supabase.auth.admin.listUsers();
+    if (error) throw error;
+    return users as User[];
+  } catch (error) {
+    console.error("Error getting users:", error);
+    return [];
+  }
+};
+
+export const getUserData = (
+  user: User
+): {
+  first_name: string;
+  last_name: string;
+  role: string;
+} => {
+  return {
+    first_name: user.user_metadata.first_name,
+    last_name: user.user_metadata.last_name,
+    role: user.user_metadata.role,
+  };
+};
 
 export const getUserRole = async (
   supabase: SupabaseClient
@@ -161,6 +207,36 @@ export const getUserRole = async (
   }
 };
 
+export async function getAllProfiles(): Promise<Profile[]> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*');
+
+  if (error) {
+    console.error('Error fetching profiles:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+export async function getProfileById(id: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching profile:', error);
+    throw error;
+  }
+
+  return data;
+}
+
+
+
 export async function getAllLocations(): Promise<Location[]> {
   try {
     const { data, error } = await supabase.from("locations").select("*");
@@ -174,7 +250,9 @@ export async function getAllLocations(): Promise<Location[]> {
   }
 }
 
-export async function getLocationById(locationId: string): Promise<Location | null> {
+export async function getLocationById(
+  locationId: string
+): Promise<Location | null> {
   try {
     const { data, error } = await supabase
       .from("locations")
@@ -190,7 +268,9 @@ export async function getLocationById(locationId: string): Promise<Location | nu
   }
 }
 
-export async function getLocationNameById(locationId: string): Promise<string | null> {
+export async function getLocationNameById(
+  locationId: string
+): Promise<string | null> {
   try {
     const { data, error } = await supabase
       .from("locations")
@@ -208,7 +288,6 @@ export async function getLocationNameById(locationId: string): Promise<string | 
     return null;
   }
 }
-
 
 export async function getAllRoutes(): Promise<Route[]> {
   try {
@@ -238,7 +317,9 @@ export async function getRouteById(routeId: string): Promise<Route | null> {
   }
 }
 
-export async function getRouteIdByTravelId(travelId: string): Promise<string | null> {
+export async function getRouteIdByTravelId(
+  travelId: string
+): Promise<string | null> {
   try {
     const { data, error } = await supabase
       .from("travels")
@@ -257,8 +338,9 @@ export async function getRouteIdByTravelId(travelId: string): Promise<string | n
   }
 }
 
-
-export async function getRouteLocations(routeId: string): Promise<{ startLocationId: string; endLocationId: string } | null> {
+export async function getRouteLocations(
+  routeId: string
+): Promise<{ startLocationId: string; endLocationId: string } | null> {
   try {
     const { data, error } = await supabase
       .from("routes")
@@ -280,7 +362,6 @@ export async function getRouteLocations(routeId: string): Promise<{ startLocatio
   }
 }
 
-
 export async function getAllBuses(): Promise<Bus[]> {
   try {
     const { data, error } = await supabase.from("buses").select("*");
@@ -289,7 +370,6 @@ export async function getAllBuses(): Promise<Bus[]> {
 
     return data as Bus[];
   } catch (error) {
-    
     console.error("Error fetching buses:", error);
     return [];
   }
@@ -311,7 +391,9 @@ export async function getBusById(busId: string): Promise<Bus | null> {
   }
 }
 
-export async function getPlateNumberByBusId(busId: string): Promise<string | null> {
+export async function getPlateNumberByBusId(
+  busId: string
+): Promise<string | null> {
   try {
     const { data, error } = await supabase
       .from("buses")
@@ -330,7 +412,9 @@ export async function getPlateNumberByBusId(busId: string): Promise<string | nul
   }
 }
 
-export async function getDriverIdByBusId(busId: string): Promise<string | null> {
+export async function getDriverIdByBusId(
+  busId: string
+): Promise<string | null> {
   try {
     const { data, error } = await supabase
       .from("buses")
@@ -349,8 +433,9 @@ export async function getDriverIdByBusId(busId: string): Promise<string | null> 
   }
 }
 
-
-export async function getBusIdByTravelId(travelId: string): Promise<string | null> {
+export async function getBusIdByTravelId(
+  travelId: string
+): Promise<string | null> {
   try {
     const { data, error } = await supabase
       .from("travels")
@@ -368,7 +453,6 @@ export async function getBusIdByTravelId(travelId: string): Promise<string | nul
     return null;
   }
 }
-
 
 export async function getAllTravels(): Promise<Travel[]> {
   try {
@@ -403,20 +487,20 @@ export async function getLatestTravels(amount: number): Promise<Travel[]> {
   if (amount > 0) {
     amount = Math.min(amount, 100); // Limit to 100 records for performance reasons
     try {
-    const { data, error } = await supabase
-      .from("travels")
-      .select("*")
-      .order("travel_date", { ascending: false })
-      .limit(amount);
+      const { data, error } = await supabase
+        .from("travels")
+        .select("*")
+        .order("travel_date", { ascending: false })
+        .limit(amount);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    return data as Travel[];
-  } catch (error) {
-    console.error("Error fetching latest travels:", error);
-    return [];
-  }
-  }else{
+      return data as Travel[];
+    } catch (error) {
+      console.error("Error fetching latest travels:", error);
+      return [];
+    }
+  } else {
     console.log("Invalid amount. Please provide a positive integer.");
     return [];
   }
@@ -482,9 +566,24 @@ export async function getBookingById(
   }
 }
 
-
-
 /* UPDATE ACTIONS */
+
+export async function updateProfile(profileData: Partial<Profile>): Promise<Profile | undefined> {
+  const { id, ...profileUpdates } = profileData; // Destructure ID and updates
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(profileUpdates)
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error updating profile:', error);
+    throw error;
+  }
+  if (data) return data[0];
+}
+
+
 
 export async function updateLocation(
   location: Location
@@ -612,7 +711,7 @@ export async function deleteLocation(locationId: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error("Error deleting location:", error);
-    
+
     return false;
   }
 }
@@ -689,6 +788,19 @@ export async function deleteBooking(bookingId: string): Promise<boolean> {
     return true;
   } catch (error) {
     console.error("Error deleting booking:", error);
+    return false;
+  }
+}
+
+export async function deleteProfile(id: string): Promise<boolean | undefined> {
+  try {
+    const { data, error } = await supabase.from("profiles").delete().eq("id", id);
+  
+    if (error) throw error;
+    
+    if (data) return true;
+  } catch (error) {
+    console.error("Error deleting profile:", error);
     return false;
   }
 }
