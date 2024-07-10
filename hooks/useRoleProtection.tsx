@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { isAdmin, isDriver } from "@/utils/roleCheck";
 
-export function useRoleProtection(supabase: SupabaseClient, requiredRole: "admin" | "driver") {
+export function useRoleProtection(requiredRole: "admin" | "driver") {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
@@ -13,9 +13,9 @@ export function useRoleProtection(supabase: SupabaseClient, requiredRole: "admin
     const checkRole = async () => {
       let authorized = false;
       if (requiredRole === "admin") {
-        authorized = await isAdmin(supabase);
+        authorized = await isAdmin();
       } else if (requiredRole === "driver") {
-        authorized = await isDriver(supabase);
+        authorized = await isDriver();
       }
       setIsAuthorized(authorized);
       if (!authorized) {
@@ -26,7 +26,7 @@ export function useRoleProtection(supabase: SupabaseClient, requiredRole: "admin
     };
 
     checkRole();
-  }, [supabase, requiredRole, router]);
+  }, [requiredRole, router]);
 
   return isAuthorized;
 }

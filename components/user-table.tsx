@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+// import * as React from "react";
+import { useEffect, useState } from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -47,116 +48,141 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Bus } from "@/types";
+import { Profile, Route } from "@/types";
 import {
-  deleteBus,
-  getAllBuses,
+  deleteRoute,
+  getAllRoutes,
   getLocationNameById,
+  getAllUsers,
+  getUserData,
+  getAllProfiles,
 } from "@/utils/supabase/queries";
-import BusForm from "@/components/bus-form";
+import RouteForm from "@/components/route-form";
 import { useToast } from "./ui/use-toast";
+import { User } from "@supabase/supabase-js";
 
-const columns: ColumnDef<Bus>[] = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
+const columns: ColumnDef<Profile>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+    cell: ({ row }) => {
+      return <div className="text-sky-700" >{row.getValue("email")}</div>;
     },
-    {
-      accessorKey: "bus_id",
-      header: "Bus ID",
-      cell: ({ row }) => <div>{row.getValue("bus_id")}</div>,
+  },
+  {
+    accessorKey: "first_name",
+    header: "First name",
+    cell: ({ row }) => {
+      return <div>{row.getValue("first_name")}</div>;
     },
-    {
-      accessorKey: "plate_number",
-      header: "Plate Number",
-      cell: ({ row }) => <div>{row.getValue("plate_number")}</div>,
-    },
-    {
-      accessorKey: "capacity",
-      header: "Capacity",
-      cell: ({ row }) => <div>{row.getValue("capacity")}</div>,
-    },
-    /* {
-      accessorKey: "driver_id", // Optional driver information
-      header: "Driver ID",
-      cell: ({ row }) => {
-        const driverId = row.getValue("driver_id");
-        return driverId ? <div>{driverId}</div> : <div>-</div>; // Display "-" if no driver
-      },
-    }, */
-    // Add more columns as needed for your bus data
-    {
-      id: "actions",
-      enableHiding: false,
-      cell: ({ row }) => {
-        const bus = row.original;
-        // Replace these actions with your actual logic
+  },
+  {
+    accessorKey: "last_name",
+    header: "Last name",
+    cell: ({ row }) => <div>{row.getValue("last_name")}</div>,
+  },
+  {
+    accessorKey: "role",
+    header: "Role",
+    cell: ({ row }) => { if ((row.getValue("role")) === "admin") { return (
+      <div> <span className={`rounded-full py-0.5 px-2 bg-purple-200 text-purple-700 font-medium`} >{row.getValue("role")}</span> </div>
+    )} else if ((row.getValue("role")) === "driver"){
+      return (
+        <div> <span className={``} >{row.getValue("role")}</span> </div>
+      )} else{
         return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => console.log("Edit bus", bus)} // Replace with your edit action
-              >
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => console.log("Delete bus", bus)} // Replace with your delete action
-              >
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
+          <div> <span className={``} >{row.getValue("role")}</span> </div>
+        )
+      }
+    }
+   },
+  {
+    id: "actions",
+    enableHiding: false,
+    cell: ({ row }) => {
+      const route = row.original;
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => console.log("Edit route", route)} // Replace with your edit action
+            >
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={async () => {
+                // const deleted = await deleteRoute(route.route_id);
+                /* if (deleted) {
+                  toast({
+                    title: "Route deleted successfully",
+                    description: "You have successfully deleted the route.",
+                  });
+                  fetchData(); // Re-fetch data after deletion
+                } else {
+                  toast({
+                    title: "Error deleting route",
+                    description: "Failed to delete the route.",
+                  });
+                } */
+              }} // Replace with your delete action
+            >
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
     },
-  ];
-  
+  },
+];
 
-export function BusTable() {
+export function UserTable() {
   const { toast } = useToast();
-  const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [rowSelection, setRowSelection] = React.useState({});
-  const [loading, setLoading] = React.useState<boolean>(true);
-  const [data, setData] = React.useState<Bus[]>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [rowSelection, setRowSelection] = useState({});
+  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<Profile[]>([{ id: "", email: "", role: "user", first_name: "", last_name: "" }]);
   const fetchData = async () => {
     setLoading(true);
-    const buses = await getAllBuses();
-    
-    setData(buses);
+    const users: Profile[] = await getAllProfiles();
+    if (users) {
+      setData(users);
+    }
+
     setLoading(false);
   };
-  
-  React.useEffect(() => {
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -178,7 +204,6 @@ export function BusTable() {
       rowSelection,
     },
   });
-
 
   if (loading) {
     return <div>Loading...</div>;
@@ -215,7 +240,7 @@ export function BusTable() {
             </Tooltip>
           </TooltipProvider>
 
-          <BusForm />
+          <RouteForm />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -2,7 +2,7 @@
 
 import { useRoleProtection } from "@/hooks/useRoleProtection";
 import { supabase } from "@/utils/supabase/client";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 
 import Link from "next/link"
@@ -50,6 +50,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useToast } from "@/components/ui/use-toast";
 
 
 export default function AdminDashboardLayout({
@@ -57,8 +58,28 @@ export default function AdminDashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const isAuthorized = useRoleProtection(supabase, "admin");
+  const { toast } = useToast();
+  const router = useRouter();
+  const isAuthorized = useRoleProtection("admin");
   const pathname = usePathname();
+
+  const logout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error signing out:", error.message);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: "Logout successful!",
+        description: "You will be rdirected to login page",
+      });
+      router.push("/auth/login");
+    }
+  };
 
   if (isAuthorized === null) {
     return <div>Loading...</div>;
@@ -107,6 +128,11 @@ export default function AdminDashboardLayout({
     {
       title: 'Locations',
       href: 'locations',
+      icon: <CircleUser className="h-6 w-6" />,
+    },
+    {
+      title: 'Users',
+      href: 'users',
       icon: <CircleUser className="h-6 w-6" />,
     },
   ]
@@ -219,7 +245,7 @@ export default function AdminDashboardLayout({
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuItem>Support</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={logout} >Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

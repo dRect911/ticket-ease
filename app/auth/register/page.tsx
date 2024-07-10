@@ -21,6 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import Link from "next/link";
+import { createProfile } from "@/utils/supabase/queries";
 
 const formSchema = z.object({
   first_name: z.string().min(2, {
@@ -62,31 +63,45 @@ export default function Register() {
     console.log(values);
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: values.email,
-      password: values.password,
-      options: {
-        data: {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            first_name: values.first_name,
+            last_name: values.last_name,
+          },
+        },
+      });
+      if (data.user) {
+        const pf = await createProfile({
+          id: data.user.id,
+          email: values.email,
+          role: "user",
           first_name: values.first_name,
           last_name: values.last_name,
-          role: "user",
-        },
-      },
-    });
-    setLoading(false);
-    if (error) {
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: "Registration successful!",
-        description: "Please check your email for verification.",
-      });
-      router.push("/auth/login");
+        });
+      }
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Uh oh! Something went wrong.",
+          description: error.message,
+        });
+      } else {
+        toast({
+          title: "Registration successful!",
+          description: "Please check your email for verification.",
+        });
+        router.push("/auth/login");
+      }
+    } catch (error) {
+      throw error;
     }
+
+    setLoading(false);
   }
 
   // 3. Define a loading state.

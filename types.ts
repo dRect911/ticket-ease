@@ -43,7 +43,7 @@ export const ticketSchema = z.object({
   ticket_id: z.string().uuid(), // Assuming UUID for ticket_id
   travel_id: z.string().uuid(), // References travels(travel_id)
   seat_number: z.number().positive().int(), // Seat number must be positive integer
-  status: z.enum(['booked', 'available']), // Status must be either 'booked' or 'available'
+  status: z.enum(["booked", "available"]), // Status must be either 'booked' or 'available'
 });
 
 export interface Ticket extends z.infer<typeof ticketSchema> {}
@@ -57,3 +57,12 @@ export const bookingSchema = z.object({
 
 export interface Booking extends z.infer<typeof bookingSchema> {}
 
+export const profileSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  role: z.enum(["user", "admin", "driver"]),
+  first_name: z.string().min(1),
+  last_name: z.string().min(1),
+});
+
+export interface Profile extends z.infer<typeof profileSchema> {}

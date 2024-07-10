@@ -65,7 +65,7 @@ const routeSchema = z.object({
     path: ["end_location_id"], // specify the path to show the error
   });
 
-const BusForm = () => {
+const RouteForm = () => {
   const { toast } = useToast();
   const [locations, setLocations] = useState<Location[]>([]);
   const form = useForm<z.infer<typeof routeSchema>>({
@@ -107,7 +107,7 @@ const BusForm = () => {
   return (
     <Drawer>
       <DrawerTrigger asChild>
-        <Button variant="outline">New Bus</Button>
+        <Button variant="outline">New Route</Button>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
@@ -223,4 +223,4 @@ const BusForm = () => {
   );
 };
 
-export default BusForm;
+export default RouteForm;
