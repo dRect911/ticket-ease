@@ -17,13 +17,6 @@ import {
 } from "@/types";
 import { z } from "zod";
 
-
-
-
-
-
-
-
 /* CREATE ACTIONS */
 
 export async function createProfile(
@@ -159,14 +152,12 @@ export async function createBooking(
 
 /* READ ACTIONS */
 
-export const getUser = cache(
-  async (): Promise<User | null> => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return user;
-  }
-);
+export const getUser = cache(async (): Promise<User | null> => {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});
 
 export const getAllUsers = async () => {
   try {
@@ -196,14 +187,12 @@ export const getUserData = (
   };
 };
 
-export const getUserRole = async (
-  supabase: SupabaseClient
-): Promise<"user" | "admin" | "driver" | null> => {
+export const getUserRole = async (): Promise<Profile["role"] | null> => {
   try {
-    const user = await getUser(supabase);
+    const userId = (await getUser())?.id;
 
-    if (user) {
-      return user.user_metadata.role;
+    if (userId) {
+      return ((await getProfileById(userId as string)) as Profile).role;
     } else {
       return null;
     }
@@ -214,12 +203,10 @@ export const getUserRole = async (
 };
 
 export async function getAllProfiles(): Promise<Profile[]> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*');
+  const { data, error } = await supabase.from("profiles").select("*");
 
   if (error) {
-    console.error('Error fetching profiles:', error);
+    console.error("Error fetching profiles:", error);
     throw error;
   }
 
@@ -228,20 +215,18 @@ export async function getAllProfiles(): Promise<Profile[]> {
 
 export async function getProfileById(id: string): Promise<Profile | null> {
   const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', id)
+    .from("profiles")
+    .select("*")
+    .eq("id", id)
     .single();
 
   if (error) {
-    console.error('Error fetching profile:', error);
+    console.error("Error fetching profile:", error);
     throw error;
   }
 
   return data;
 }
-
-
 
 export async function getAllLocations(): Promise<Location[]> {
   try {
@@ -574,22 +559,22 @@ export async function getBookingById(
 
 /* UPDATE ACTIONS */
 
-export async function updateProfile(profileData: Partial<Profile>): Promise<Profile | undefined> {
+export async function updateProfile(
+  profileData: Partial<Profile>
+): Promise<Profile | undefined> {
   const { id, ...profileUpdates } = profileData; // Destructure ID and updates
 
   const { data, error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .update(profileUpdates)
-    .eq('id', id);
+    .eq("id", id);
 
   if (error) {
-    console.error('Error updating profile:', error);
+    console.error("Error updating profile:", error);
     throw error;
   }
   if (data) return data[0];
 }
-
-
 
 export async function updateLocation(
   location: Location
@@ -701,8 +686,6 @@ export async function updateBooking(booking: Booking): Promise<Booking | null> {
   }
 }
 
-
-
 /* DELETE ACTIONS */
 
 export async function deleteLocation(locationId: string): Promise<boolean> {
@@ -800,10 +783,13 @@ export async function deleteBooking(bookingId: string): Promise<boolean> {
 
 export async function deleteProfile(id: string): Promise<boolean | undefined> {
   try {
-    const { data, error } = await supabase.from("profiles").delete().eq("id", id);
-  
+    const { data, error } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", id);
+
     if (error) throw error;
-    
+
     if (data) return true;
   } catch (error) {
     console.error("Error deleting profile:", error);
