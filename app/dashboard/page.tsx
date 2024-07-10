@@ -6,17 +6,21 @@ import withAuth from "@/lib/withAuth";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { UserMetadata } from "@supabase/supabase-js";
-import { getUser } from "@/utils/supabase/queries";
+import { getProfileById, getUser } from "@/utils/supabase/queries";
 import { supabase } from "@/utils/supabase/client";
+import { Profile } from "@/types";
+
+
 
 
 function Dashboard() {
-  const [userData, setUserData] = useState<UserMetadata | null | undefined>(null);
+  const [userData, setUserData] = useState<Profile | null | undefined>(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const data = await getUser(supabase);
-      setUserData(data?.user_metadata);
+      const userId = (await getUser())?.id; 
+    const userProfile = (await getProfileById(userId as string))
+    setUserData(userProfile);
     };
 
     fetchUserData();
