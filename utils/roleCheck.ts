@@ -1,10 +1,12 @@
 
-import { getUserRole } from "@/utils/supabase/queries";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { getUser, getProfileById } from "@/utils/supabase/queries";
+// import { SupabaseClient } from "@supabase/supabase-js";
 
-export async function hasRole(supabase: SupabaseClient, role: string): Promise<boolean> {
+export async function hasRole(role: string): Promise<boolean> {
   try {
-    const userRole = await getUserRole(supabase);
+    const userId = (await getUser())?.id; 
+    const userRole = (await getProfileById(userId as string))?.role
+
     return userRole === role;
   } catch (error) {
     console.error("Error checking user role:", error);
@@ -12,10 +14,10 @@ export async function hasRole(supabase: SupabaseClient, role: string): Promise<b
   }
 }
 
-export async function isAdmin(supabase: SupabaseClient): Promise<boolean> {
-  return hasRole(supabase, "admin");
+export async function isAdmin(): Promise<boolean> {
+  return hasRole("admin");
 }
 
-export async function isDriver(supabase: SupabaseClient): Promise<boolean> {
-  return hasRole(supabase, "driver");
+export async function isDriver(): Promise<boolean> {
+  return hasRole("driver");
 }

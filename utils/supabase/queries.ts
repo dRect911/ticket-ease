@@ -16,7 +16,13 @@ import {
   Profile,
 } from "@/types";
 import { z } from "zod";
-import { useToast } from "@/components/ui/use-toast";
+
+
+
+
+
+
+
 
 /* CREATE ACTIONS */
 
@@ -154,7 +160,7 @@ export async function createBooking(
 /* READ ACTIONS */
 
 export const getUser = cache(
-  async (supabase: SupabaseClient): Promise<User | null> => {
+  async (): Promise<User | null> => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
