@@ -109,6 +109,11 @@ export default function AdminDashboardLayout({
       href: 'locations',
       icon: <CircleUser className="h-6 w-6" />,
     },
+    {
+      title: 'Users',
+      href: 'users',
+      icon: <CircleUser className="h-6 w-6" />,
+    },
   ]
 
   return (
