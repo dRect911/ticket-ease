@@ -60,6 +60,7 @@ import {
 import RouteForm from "@/components/route-form";
 import { useToast } from "./ui/use-toast";
 import { User } from "@supabase/supabase-js";
+import EditUser from "./edit-user";
 
 const columns: ColumnDef<Profile>[] = [
   {
@@ -88,7 +89,7 @@ const columns: ColumnDef<Profile>[] = [
     accessorKey: "email",
     header: "Email",
     cell: ({ row }) => {
-      return <div className="text-sky-700" >{row.getValue("email")}</div>;
+      return <div className="text-sky-700">{row.getValue("email")}</div>;
     },
   },
   {
@@ -106,18 +107,43 @@ const columns: ColumnDef<Profile>[] = [
   {
     accessorKey: "role",
     header: "Role",
-    cell: ({ row }) => { if ((row.getValue("role")) === "admin") { return (
-      <div> <span className={`rounded-full py-0.5 px-2 bg-purple-200 text-purple-700 font-medium`} >{row.getValue("role")}</span> </div>
-    )} else if ((row.getValue("role")) === "driver"){
-      return (
-        <div> <span className={``} >{row.getValue("role")}</span> </div>
-      )} else{
+    cell: ({ row }) => {
+      if (row.getValue("role") === "admin") {
         return (
-          <div> <span className={``} >{row.getValue("role")}</span> </div>
-        )
+          <div>
+            {" "}
+            <span
+              className={`rounded-full py-0.5 px-2 bg-purple-200 text-purple-700 font-medium`}
+            >
+              {row.getValue("role")}
+            </span>{" "}
+          </div>
+        );
+      } else if (row.getValue("role") === "driver") {
+        return (
+          <div>
+            {" "}
+            <span
+              className={`rounded-full py-0.5 px-2 bg-pink-200 text-pink-700 font-medium`}
+            >
+              {row.getValue("role")}
+            </span>{" "}
+          </div>
+        );
+      } else {
+        return (
+          <div>
+            {" "}
+            <span
+              className={`rounded-full py-0.5 px-2 bg-emerald-200 text-emerald-700 font-medium`}
+            >
+              {row.getValue("role")}
+            </span>{" "}
+          </div>
+        );
       }
-    }
-   },
+    },
+  },
   {
     id: "actions",
     enableHiding: false,
@@ -136,7 +162,7 @@ const columns: ColumnDef<Profile>[] = [
             <DropdownMenuItem
               onClick={() => console.log("Edit route", route)} // Replace with your edit action
             >
-              Edit
+              <EditUser />
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={async () => {
@@ -171,7 +197,9 @@ export function UserTable() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
   const [loading, setLoading] = useState<boolean>(true);
-  const [data, setData] = useState<Profile[]>([{ id: "", email: "", role: "user", first_name: "", last_name: "" }]);
+  const [data, setData] = useState<Profile[]>([
+    { id: "", email: "", role: "user", first_name: "", last_name: "" },
+  ]);
   const fetchData = async () => {
     setLoading(true);
     const users: Profile[] = await getAllProfiles();
