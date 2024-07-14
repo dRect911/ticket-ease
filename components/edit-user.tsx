@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getAllLocations, createRoute, getLocationNameById } from "@/utils/supabase/queries";
+import { updateProfile } from "@/utils/supabase/queries";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,37 +16,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-  } from "@/components/ui/select";
-import { Location } from "@/types";
-import { Check, ChevronsUpDown } from "lucide-react";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Location, Profile, profileSchema } from "@/types";
+import { Check, ChevronsUpDown, Pencil } from "lucide-react";
 import { cn } from "@/utils";
 import {
   Dialog,
@@ -56,104 +35,282 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { log } from "console";
 
-
-
-const routeSchema = z.object({
-    start_location_id: z.string().min(1, "Start location is required"),
-    end_location_id: z.string().min(1, "End location is required"),
-    distance: z.number().positive("Distance must be a positive number").transform((val) => parseFloat(val as any))
-    .refine((val) => !isNaN(val) && val > 0, {
-      message: "Distance must be a positive number",
-    }),
-    duration: z.string().min(1),
-  }).refine((data) => data.start_location_id !== data.end_location_id, {
-    message: "Start and end locations must be different",
-    path: ["end_location_id"], // specify the path to show the error
-  });
-
-const EditUser = () => {
+const EditUser = ({ userData }: { userData: Profile }) => {
   const { toast } = useToast();
-  const [locations, setLocations] = useState<Location[]>([]);
-  const form = useForm<z.infer<typeof routeSchema>>({
-    resolver: zodResolver(routeSchema),
+  const form = useForm<Partial<z.infer<typeof profileSchema>>>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      id: userData.id,
+      first_name: userData.first_name,
+      last_name: userData.last_name,
+      email: userData.email,
+      role: userData.role,
+    },
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const locationData = await getAllLocations();
-      setLocations(locationData);
-    };
+  async function onSubmit(values: Partial<Profile>) {
+    try {
+      console.log("got into the submit logic");
 
-    fetchData();
-  }, []);
+      /* toast({
+        title: "You submitted this",
+        description: `First name: ${values.first_name}, Last name: ${values.last_name}, Role: ${values.role}`,
+      }); */
 
-  const onSubmit = async (values: z.infer<typeof routeSchema>) => {
-    if (values.start_location_id === values.end_location_id) {
+      const updatedProfiles = await updateProfile(values);
+      if (updatedProfiles) {
+        toast({
+          title: "Profile updated successfully",
+          description: "Reload profiles table to check updates",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Uh oh! Something went wrong.",
+        });
+      }
+    } catch (error) {
+      console.error("Error in onSubmit:", error);
       toast({
         variant: "destructive",
-        title: "Start and end locations must be different.",
-      });
-      return;
-    }
-
-    const createdRoute = await createRoute(values);
-    if (createdRoute) {
-      toast({
-        title: "Route added successfully",
-        description: "You can now use this route for travels.",
-      });
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
+        title: "Submission error",
+        description: "An error occurred while submitting the form.",
       });
     }
-  };
+  }
 
   return (
-    <Dialog>
-      <DialogTrigger >
-        Edit
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Edit profile</DialogTitle>
-          <DialogDescription>
+    <Sheet>
+      <SheetTrigger asChild>
+        <Pencil
+          size={16}
+          className="hover:cursor-pointer hover:text-sky-600 transition-all"
+        />
+      </SheetTrigger>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>Edit profile</SheetTitle>
+          <SheetDescription>
             Make changes to your profile here. Click save when you're done.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="name" className="text-right">
-              Name
-            </Label>
-            <Input
-              id="name"
-              defaultValue="Pedro Duarte"
-              className="col-span-3"
+          </SheetDescription>
+        </SheetHeader>
+        <Form {...form}>
+          <form
+            onSubmit={(e) => {
+              console.log("Form submitted");
+              form.handleSubmit(onSubmit)(e);
+            }}
+          >
+            <FormField
+              control={form.control}
+              name="first_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>First name</FormLabel>
+                  <FormControl>
+                    <Input
+                      required
+                      type="text"
+                      placeholder={userData.first_name}
+                      id="first_name"
+                      className="col-span-3"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="username" className="text-right">
-              Username
-            </Label>
-            <Input
-              id="username"
-              defaultValue="@peduarte"
-              className="col-span-3"
+            <FormField
+              control={form.control}
+              name="last_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last name</FormLabel>
+                  <FormControl>
+                    <Input
+                      required
+                      type="text"
+                      placeholder={userData.last_name}
+                      id="last_name"
+                      className="col-span-3"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button type="submit">Save changes</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem className="pb-20">
+                  <FormLabel>Role</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={userData.role}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={userData.role} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="user">
+                        <span
+                          className={`rounded-full py-0.5 px-2 bg-emerald-200 text-emerald-700 font-medium`}
+                        >
+                          {"user"}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="driver">
+                        <span
+                          className={`rounded-full py-0.5 px-2 bg-pink-200 text-pink-700 font-medium`}
+                        >
+                          {"driver"}
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="admin">
+                        <span
+                          className={`rounded-full py-0.5 px-2 bg-purple-200 text-purple-700 font-medium`}
+                        >
+                          {"admin"}
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Choose role carefuly</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit">Save changes</Button>
+          </form>
+        </Form>
+        {/* <SheetFooter>
+          <SheetClose asChild>
+            <Button type="submit">Save changes</Button>
+          </SheetClose>
+        </SheetFooter> */}
+      </SheetContent>
+    </Sheet>
   );
 };
 
 export default EditUser;
+
+{
+  /* <Input type="text" defaultValue={userData.first_name} />
+        <Input type="text" defaultValue={userData.last_name} />
+        <Input type="text" defaultValue={userData.role} /> */
+}
+/* 
+
+<Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <FormControl>
+              <FormField
+                control={form.control}
+                name="first_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First name</FormLabel>
+                    <FormControl>
+                      <Input
+                        // disabled={loading}
+                        type="text"
+                        placeholder="Type in your first name"
+                        id="first_name"
+                        defaultValue={userData.first_name}
+                        className="col-span-3"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="last_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last name</FormLabel>
+                    <FormControl>
+                      <Input
+                        // disabled={loading}
+                        type="text"
+                        placeholder="Type in your first name"
+                        id="last_name"
+                        defaultValue={userData.last_name}
+                        className="col-span-3"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={userData.role}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={userData.role} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="user">
+                          <span
+                            className={`rounded-full py-0.5 px-2 bg-emerald-200 text-emerald-700 font-medium`}
+                          >
+                            {"user"}
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="driver">
+                          <span
+                            className={`rounded-full py-0.5 px-2 bg-pink-200 text-pink-700 font-medium`}
+                          >
+                            {"driver"}
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="admin">
+                          <span
+                            className={`rounded-full py-0.5 px-2 bg-purple-200 text-purple-700 font-medium`}
+                          >
+                            {"admin"}
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>Choose role carefuly</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </FormControl>
+          </form>
+        </Form>*/
