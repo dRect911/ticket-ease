@@ -19,6 +19,13 @@ import { z } from "zod";
 
 /* CREATE ACTIONS */
 
+/**
+ * Creates a new profile in the database.
+ *
+ * @param profileData - The profile data to be inserted.
+ * @returns A promise that resolves to the newly created profile if successful, or undefined if an error occurs.
+ * @throws An error if the insertion fails.
+ */
 export async function createProfile(
   profileData: Profile
 ): Promise<Profile | undefined> {
@@ -35,6 +42,13 @@ export async function createProfile(
   }
 }
 
+
+/**
+ * Creates a new location in the database.
+ * 
+ * @param location_name - The name of the location to be created.
+ * @returns A Promise that resolves with the created Location object if successful, true if the record was inserted but not returned, or null if an error occurs.
+ */
 export async function createLocation(
   location_name: string
 ): Promise<Location | null | true> {
@@ -53,6 +67,8 @@ export async function createLocation(
     return null;
   }
 }
+
+
 const routeSchema = z
   .object({
     start_location_id: z.string().min(1, "Start location is required"),
@@ -70,6 +86,8 @@ const routeSchema = z
     message: "Start and end locations must be different",
     path: ["end_location_id"], // specify the path to show the error
   });
+
+
 export async function createRoute(
   route: z.infer<typeof routeSchema>
 ): Promise<Route | null | true> {
@@ -86,6 +104,13 @@ export async function createRoute(
   }
 }
 
+/**
+ * Creates a new bus in the database.
+ *
+ * @param bus - The bus data to be inserted.
+ * @returns A promise that resolves to the newly created bus if successful, or undefined if an error occurs.
+ * @throws An error if the insertion fails.
+ */
 export async function createBus(
   bus: z.infer<typeof busSchema>
 ): Promise<Bus | null> {
@@ -102,6 +127,14 @@ export async function createBus(
   }
 }
 
+/**
+ * Creates a new travel in the database.
+ *
+ * @param travel - The travel data to be inserted.
+ * @returns A promise that resolves to the newly created travel if successful, or undefined if an error occurs.
+ * @throws An error if the insertion fails.
+ * @see https://www.typescriptlang.org/docs/handbook/writing-modular-code.html#typescript-documentation-comments
+ */
 export async function createTravel(
   travel: z.infer<typeof travelSchema>
 ): Promise<Travel | null> {
@@ -118,6 +151,13 @@ export async function createTravel(
   }
 }
 
+/**
+ * Creates a new ticket in the database.
+ *
+ * @param ticket - The ticket data to be inserted.
+ * @returns A promise that resolves to the newly created ticket if successful, or undefined if an error occurs.
+ * @throws An error if the insertion fails.
+ */
 export async function createTicket(
   ticket: z.infer<typeof ticketSchema>
 ): Promise<Ticket | null> {
@@ -202,7 +242,7 @@ export const getUserRole = async (): Promise<Profile["role"] | null> => {
   }
 };
 
-export async function getAllProfiles(): Promise<Profile[]> {
+export const getAllProfiles = cache(async (): Promise<Profile[]> => {
   const { data, error } = await supabase.from("profiles").select("*");
 
   if (error) {
@@ -211,21 +251,68 @@ export async function getAllProfiles(): Promise<Profile[]> {
   }
 
   return data;
-}
+})
 
-export async function getProfileById(id: string): Promise<Profile | null> {
+export const getProfileById = cache(async (id: string): Promise<Profile | null> => {
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching profile:", error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error fetching profile:", error);
+    return null;
+  }
+})
+
+async function getActiveDriverIds(): Promise<string[]> {
   const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", id)
-    .single();
+    .from('buses')
+    .select('driver_id'); // Get all driver IDs from the buses table
 
   if (error) {
-    console.error("Error fetching profile:", error);
+    console.error('Error fetching active driver IDs:', error);
     throw error;
   }
 
-  return data;
+  return data.map((row) => row.driver_id) as string[]; // Extract and cast IDs to string array
+}
+
+async function getAllDriverIds(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('role', 'driver'); // Get IDs of profiles with role "driver"
+
+  if (error) {
+    console.error('Error fetching all driver IDs:', error);
+    throw error;
+  }
+
+  return data.map((row) => row.id) as string[]; // Extract and cast IDs to string array
+}
+
+export async function getFreeDrivers(): Promise<Profile[]> {
+  const activeDriverIds = await getActiveDriverIds();
+  const allDriverIds = await getAllDriverIds();
+
+  // Find free driver IDs (all drivers - active drivers)
+  const freeDriverIds = allDriverIds.filter((id) => !activeDriverIds.includes(id));
+
+  // Fetch profiles for free drivers using map and getProfileById
+  const freeDrivers = await Promise.all(
+    freeDriverIds.map((id) => getProfileById(id))
+  );
+
+  return freeDrivers.filter((driver) => driver !== null) as Profile[]; // Filter out any null profiles
 }
 
 export async function getAllLocations(): Promise<Location[]> {
@@ -380,6 +467,19 @@ export async function getBusById(busId: string): Promise<Bus | null> {
     console.error("Error fetching bus:", error);
     return null;
   }
+}
+
+export async function getPlateNumbers(): Promise<string[]>{
+  const { data, error } = await supabase
+  .from('buses')
+  .select('plate_number'); // Get all plate numbers from the buses table
+
+if (error) {
+  console.error('Error fetching active driver IDs:', error);
+  throw error;
+}
+
+return data.map((row) => row.plate_number) as string[]; // Extract and cast plate numbers to string array
 }
 
 export async function getPlateNumberByBusId(
@@ -559,6 +659,14 @@ export async function getBookingById(
 
 /* UPDATE ACTIONS */
 
+ /**
+ * Updates the profile data in the database.
+ *
+ * @param profileData - The profile data to be updated. This should be a partial object, meaning only the fields that need to be updated should be included.
+ * @returns A promise that resolves to the updated profile if successful, or undefined if an error occurs.
+ * @throws An error if the update fails.
+ * @see https://www.typescriptlang.org/docs/handbook/writing-modular-code.html#typescript-documentation-comments
+ */
 export async function updateProfile(
   profileData: Partial<Profile>
 ): Promise<Profile | undefined> {
@@ -567,7 +675,8 @@ export async function updateProfile(
   const { data, error } = await supabase
     .from("profiles")
     .update(profileUpdates)
-    .eq("id", id);
+    .eq("id", id)
+    .select();
 
   if (error) {
     console.error("Error updating profile:", error);
