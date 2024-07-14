@@ -4,7 +4,14 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getAllLocations, createRoute, getLocationNameById, getFreeDrivers, getPlateNumbers, createBus } from "@/utils/supabase/queries";
+import {
+  getAllLocations,
+  createRoute,
+  getLocationNameById,
+  getFreeDrivers,
+  getPlateNumbers,
+  createBus,
+} from "@/utils/supabase/queries";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +36,16 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   Drawer,
   DrawerClose,
   DrawerContent,
@@ -39,38 +56,34 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-  } from "@/components/ui/select";
-import { busSchema, Location, Profile } from "@/types";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { busSchema, Bus, Profile } from "@/types";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/utils";
 import { Input } from "./ui/input";
 
 
-
-const routeSchema = z.object({
-    start_location_id: z.string().min(1, "Start location is required"),
-    end_location_id: z.string().min(1, "End location is required"),
-    distance: z.number().positive("Distance must be a positive number").transform((val) => parseFloat(val as any))
-    .refine((val) => !isNaN(val) && val > 0, {
-      message: "Distance must be a positive number",
-    }),
-    duration: z.string().min(1),
-  }).refine((data) => data.start_location_id !== data.end_location_id, {
-    message: "Start and end locations must be different",
-    path: ["end_location_id"], // specify the path to show the error
-  });
+export const busFormSchema = z.object({
+  // bus_id: z.string().uuid(), // Assuming UUID for bus_id
+  plate_number: z
+    .string()
+    .min(1, "Plate number is required")
+    .regex(/^[A-Z]{2}-\d{4}$/, "Plate number must be in AA-0000 format"),
+  capacity: z.number().positive("Capacity must be a positive number").int(),
+  driver_id: z.string().uuid().optional(), // Driver ID can be optional (null)
+});
 
 const BusForm = () => {
   const { toast } = useToast();
   const [freeDrivers, setFreeDrivers] = useState<Profile[]>([]);
   const [plateNumbers, setPlateNumbers] = useState<string[]>([]);
-  const form = useForm<z.infer<typeof busSchema>>({
-    resolver: zodResolver(busSchema),
+  const form = useForm<z.infer<typeof busFormSchema>>({
+    resolver: zodResolver(busFormSchema),
   });
 
   useEffect(() => {
@@ -84,7 +97,9 @@ const BusForm = () => {
     fetchData();
   }, []);
 
-  const onSubmit = async (values: z.infer<typeof busSchema>) => {
+  const onSubmit = async (values: z.infer<typeof busFormSchema>) => {
+    console.log("got into submit logic");
+
     if (plateNumbers.includes(values.plate_number)) {
       toast({
         variant: "destructive",
@@ -108,7 +123,120 @@ const BusForm = () => {
   };
 
   return (
-    <Drawer>
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="outline">New Bus</Button>
+      </SheetTrigger>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>Add a new bus</SheetTitle>
+          <SheetDescription>
+            Add a new bus to create new travels
+          </SheetDescription>
+        </SheetHeader>
+        <Form {...form}>
+          <form onSubmit={(e) => {
+              console.log("Form submitted");
+              form.handleSubmit(onSubmit)(e);
+            }}>
+            <FormField
+              control={form.control}
+              name="plate_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plate number</FormLabel>
+                  <FormControl>
+                    <Input
+                      required
+                      type="text"
+                      placeholder="AA-0000"
+                      id="plate_number"
+                      className="col-span-3"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    You should follow this format "AA-0000"
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="capacity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Capacity</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter capacity"
+                      {...field}
+                      value={field.value || ""} // Ensure the value is not undefined
+                      onChange={(e) => field.onChange(e.target.valueAsNumber)} // Convert to number
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Set the amount of places of the bus
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="driver_id"
+              render={({ field }) => (
+                <FormItem className="pb-20">
+                  <FormLabel>Driver</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    disabled={freeDrivers.length == 0}
+                    // defaultValue={userData.role}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            freeDrivers.length > 0
+                              ? `Choose a driver`
+                              : `No driver availble`
+                          }
+                        />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {freeDrivers.map((driver) => (
+                        <SelectItem key={driver.id} value={driver.id}>
+                          {driver.first_name} {driver.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Assign a driver to this bus</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button className="w-full mt-4" type="submit">
+              Add Bus
+            </Button>
+          </form>
+        </Form>
+        {/* <SheetFooter>
+        <SheetClose asChild>
+          <Button type="submit">Save changes</Button>
+        </SheetClose>
+      </SheetFooter> */}
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+export default BusForm;
+{
+  /* <Drawer>
       <DrawerTrigger asChild>
         <Button variant="outline">New Bus</Button>
       </DrawerTrigger>
@@ -154,6 +282,8 @@ const BusForm = () => {
                         type="number"
                         placeholder="Enter capacity"
                         {...field}
+                        value={field.value || ''} // Ensure the value is not undefined
+          onChange={(e) => field.onChange(e.target.valueAsNumber)} // Convert to number
                       />
                     </FormControl>
                       <FormDescription>Set the amount of places of the bus</FormDescription>
@@ -206,8 +336,5 @@ const BusForm = () => {
           </DrawerFooter>
         </div>
       </DrawerContent>
-    </Drawer>
-  );
-};
-
-export default BusForm;
+    </Drawer> */
+}
