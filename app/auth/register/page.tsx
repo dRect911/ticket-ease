@@ -132,7 +132,7 @@ export default function Register() {
                   />
                 </FormControl>
                 <FormDescription>
-                  This is your public display name.
+                  This is your public display first name.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -153,7 +153,7 @@ export default function Register() {
                   />
                 </FormControl>
                 <FormDescription>
-                  This is your public display name.
+                  This is your public display last name.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -174,7 +174,7 @@ export default function Register() {
                   />
                 </FormControl>
                 <FormDescription>
-                  This is your public display name.
+                  This will be private.
                 </FormDescription>
                 <FormMessage />
               </FormItem>

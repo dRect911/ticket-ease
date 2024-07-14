@@ -18,6 +18,7 @@ import {
   ArrowUpDown,
   ChevronDown,
   MoreHorizontal,
+  Pencil,
   RefreshCw,
   Route as RouteIcon,
 } from "lucide-react";
@@ -48,19 +49,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Profile, Route } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Profile } from "@/types";
 import {
-  deleteRoute,
-  getAllRoutes,
-  getLocationNameById,
-  getAllUsers,
-  getUserData,
   getAllProfiles,
 } from "@/utils/supabase/queries";
-import RouteForm from "@/components/route-form";
 import { useToast } from "./ui/use-toast";
-import { User } from "@supabase/supabase-js";
 import EditUser from "./edit-user";
+
+export const revalidate = 10; // revalidate the data at most every hour
 
 const columns: ColumnDef<Profile>[] = [
   {
@@ -148,43 +145,11 @@ const columns: ColumnDef<Profile>[] = [
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      const route = row.original;
+      const profile = row.original;
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => console.log("Edit route", route)} // Replace with your edit action
-            >
-              <EditUser />
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={async () => {
-                // const deleted = await deleteRoute(route.route_id);
-                /* if (deleted) {
-                  toast({
-                    title: "Route deleted successfully",
-                    description: "You have successfully deleted the route.",
-                  });
-                  fetchData(); // Re-fetch data after deletion
-                } else {
-                  toast({
-                    title: "Error deleting route",
-                    description: "Failed to delete the route.",
-                  });
-                } */
-              }} // Replace with your delete action
-            >
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex gap-4">
+          <EditUser userData={profile} />
+        </div>
       );
     },
   },
@@ -200,6 +165,7 @@ export function UserTable() {
   const [data, setData] = useState<Profile[]>([
     { id: "", email: "", role: "user", first_name: "", last_name: "" },
   ]);
+
   const fetchData = async () => {
     setLoading(true);
     const users: Profile[] = await getAllProfiles();
@@ -234,7 +200,13 @@ export function UserTable() {
   });
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center ">
+        <Skeleton className="w-full" />
+        <Skeleton className="w-full" />
+        <Skeleton className="w-full" />
+      </div>
+    );
   }
 
   return (
@@ -243,14 +215,10 @@ export function UserTable() {
         <Input
           placeholder="Filter names..."
           value={
-            (table
-              .getColumn("start_location_name")
-              ?.getFilterValue() as string) ?? ""
+            (table.getColumn("first_name")?.getFilterValue() as string) ?? ""
           }
           onChange={(event) =>
-            table
-              .getColumn("start_location_name")
-              ?.setFilterValue(event.target.value)
+            table.getColumn("first_name")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
@@ -268,7 +236,7 @@ export function UserTable() {
             </Tooltip>
           </TooltipProvider>
 
-          <RouteForm />
+          {/* <RouteForm /> */}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -368,6 +336,7 @@ export function UserTable() {
           </Button>
         </div>
       </div>
+      <div className="pt-16"></div>
     </div>
   );
 }
