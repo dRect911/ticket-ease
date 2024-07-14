@@ -5,9 +5,6 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  getAllLocations,
-  createRoute,
-  getLocationNameById,
   getFreeDrivers,
   getPlateNumbers,
   createBus,
@@ -24,18 +21,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
   Sheet,
   SheetClose,
   SheetContent,
@@ -46,16 +31,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -63,8 +38,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { busSchema, Bus, Profile } from "@/types";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/utils";
 import { Input } from "./ui/input";
 
 
@@ -78,6 +51,14 @@ export const busFormSchema = z.object({
   driver_id: z.string().uuid().optional(), // Driver ID can be optional (null)
 });
 
+
+
+/**
+ * Functional component representing a form for adding a new bus.
+ * Fetches free drivers and plate numbers on component mount.
+ * Validates and submits bus creation data.
+ * Allows selection of a driver for the bus.
+ */
 const BusForm = () => {
   const { toast } = useToast();
   const [freeDrivers, setFreeDrivers] = useState<Profile[]>([]);

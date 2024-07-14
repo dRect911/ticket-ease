@@ -85,16 +85,25 @@ const routeSchema = z
     path: ["end_location_id"], // specify the path to show the error
   });
 
+
+/**
+ * Creates a new route in the database.
+ *
+ * @param route - The route data to be inserted.
+ * @returns A promise that resolves to the newly created route if successful, or undefined if an error occurs.
+ * @throws An error if the insertion fails.
+ * @see https://www.typescriptlang.org/docs/handbook/writing-modular-code.html#typescript-documentation-comments
+ */
 export async function createRoute(
   route: z.infer<typeof routeSchema>
-): Promise<Route | null | true> {
+): Promise<Route | null> {
   try {
-    const { data, error } = await supabase.from("routes").insert(route);
+    const { data, error } = await supabase.from("routes").insert(route).select();
 
     if (error) throw error;
 
     if (data) return data[0] as Route; // Assuming single record inserted
-    return true;
+    return null
   } catch (error) {
     console.error("Error creating route:", error);
     return null;
