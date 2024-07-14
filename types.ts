@@ -21,9 +21,9 @@ export const busSchema = z.object({
   bus_id: z.string().uuid(), // Assuming UUID for bus_id
   plate_number: z
     .string()
-    .min(1)
+    .min(1, "Plate number is required")
     .regex(/^[A-Z]{2}-\d{4}$/, "Plate number must be in AA-0000 format"), // Plate number validation
-  capacity: z.number().positive().int(), // Capacity must be a positive integer
+  capacity: z.number().positive("Capacity must be a positive number").int(), // Capacity must be a positive integer
   driver_id: z.string().uuid().optional(), // Driver ID can be optional (null)
 });
 

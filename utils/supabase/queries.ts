@@ -42,10 +42,9 @@ export async function createProfile(
   }
 }
 
-
 /**
  * Creates a new location in the database.
- * 
+ *
  * @param location_name - The name of the location to be created.
  * @returns A Promise that resolves with the created Location object if successful, true if the record was inserted but not returned, or null if an error occurs.
  */
@@ -68,7 +67,6 @@ export async function createLocation(
   }
 }
 
-
 const routeSchema = z
   .object({
     start_location_id: z.string().min(1, "Start location is required"),
@@ -86,7 +84,6 @@ const routeSchema = z
     message: "Start and end locations must be different",
     path: ["end_location_id"], // specify the path to show the error
   });
-
 
 export async function createRoute(
   route: z.infer<typeof routeSchema>
@@ -112,10 +109,10 @@ export async function createRoute(
  * @throws An error if the insertion fails.
  */
 export async function createBus(
-  bus: z.infer<typeof busSchema>
+  bus: Omit<(z.infer<typeof busSchema>), 'bus_id' >
 ): Promise<Bus | null> {
   try {
-    const { data, error } = await supabase.from("buses").insert(bus);
+    const { data, error } = await supabase.from("buses").insert(bus).select();
 
     if (error) throw error;
 
@@ -251,35 +248,35 @@ export const getAllProfiles = cache(async (): Promise<Profile[]> => {
   }
 
   return data;
-})
+});
 
-export const getProfileById = cache(async (id: string): Promise<Profile | null> => {
-  try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", id)
-      .single();
+export const getProfileById = cache(
+  async (id: string): Promise<Profile | null> => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    if (error) {
+      if (error) {
+        console.error("Error fetching profile:", error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
       console.error("Error fetching profile:", error);
-      throw error;
+      return null;
     }
-
-    return data;
-  } catch (error) {
-    console.error("Error fetching profile:", error);
-    return null;
   }
-})
+);
 
 async function getActiveDriverIds(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('buses')
-    .select('driver_id'); // Get all driver IDs from the buses table
+  const { data, error } = await supabase.from("buses").select("driver_id"); // Get all driver IDs from the buses table
 
   if (error) {
-    console.error('Error fetching active driver IDs:', error);
+    console.error("Error fetching active driver IDs:", error);
     throw error;
   }
 
@@ -288,12 +285,12 @@ async function getActiveDriverIds(): Promise<string[]> {
 
 async function getAllDriverIds(): Promise<string[]> {
   const { data, error } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('role', 'driver'); // Get IDs of profiles with role "driver"
+    .from("profiles")
+    .select("id")
+    .eq("role", "driver"); // Get IDs of profiles with role "driver"
 
   if (error) {
-    console.error('Error fetching all driver IDs:', error);
+    console.error("Error fetching all driver IDs:", error);
     throw error;
   }
 
@@ -305,7 +302,9 @@ export async function getFreeDrivers(): Promise<Profile[]> {
   const allDriverIds = await getAllDriverIds();
 
   // Find free driver IDs (all drivers - active drivers)
-  const freeDriverIds = allDriverIds.filter((id) => !activeDriverIds.includes(id));
+  const freeDriverIds = allDriverIds.filter(
+    (id) => !activeDriverIds.includes(id)
+  );
 
   // Fetch profiles for free drivers using map and getProfileById
   const freeDrivers = await Promise.all(
@@ -469,17 +468,15 @@ export async function getBusById(busId: string): Promise<Bus | null> {
   }
 }
 
-export async function getPlateNumbers(): Promise<string[]>{
-  const { data, error } = await supabase
-  .from('buses')
-  .select('plate_number'); // Get all plate numbers from the buses table
+export async function getPlateNumbers(): Promise<string[]> {
+  const { data, error } = await supabase.from("buses").select("plate_number"); // Get all plate numbers from the buses table
 
-if (error) {
-  console.error('Error fetching active driver IDs:', error);
-  throw error;
-}
+  if (error) {
+    console.error("Error fetching active driver IDs:", error);
+    throw error;
+  }
 
-return data.map((row) => row.plate_number) as string[]; // Extract and cast plate numbers to string array
+  return data.map((row) => row.plate_number) as string[]; // Extract and cast plate numbers to string array
 }
 
 export async function getPlateNumberByBusId(
@@ -659,7 +656,7 @@ export async function getBookingById(
 
 /* UPDATE ACTIONS */
 
- /**
+/**
  * Updates the profile data in the database.
  *
  * @param profileData - The profile data to be updated. This should be a partial object, meaning only the fields that need to be updated should be included.
@@ -833,7 +830,9 @@ export async function deleteBus(busId: string): Promise<boolean> {
   try {
     const { error } = await supabase.from("buses").delete().eq("bus_id", busId);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     return true;
   } catch (error) {
