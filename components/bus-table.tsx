@@ -47,95 +47,101 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Bus } from "@/types";
+import { Bus, Profile } from "@/types";
 import {
   deleteBus,
   getAllBuses,
   getLocationNameById,
+  getProfileById,
 } from "@/utils/supabase/queries";
 import BusForm from "@/components/bus-form";
 import { useToast } from "./ui/use-toast";
 
-const columns: ColumnDef<Bus>[] = [
-    {
-      id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
+interface BusDetails extends Bus {
+  driver_name?: string;
+}
+
+const columns: ColumnDef<BusDetails>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "bus_id",
+    header: "Bus ID",
+    cell: ({ row }) => <div>{row.getValue("bus_id")}</div>,
+  },
+  {
+    accessorKey: "plate_number",
+    header: "Plate Number",
+    cell: ({ row }) => <div>{row.getValue("plate_number")}</div>,
+  },
+  {
+    accessorKey: "capacity",
+    header: "Capacity",
+    cell: ({ row }) => <div>{row.getValue("capacity")}</div>,
+  },
+  {
+    accessorKey: "driver_name", // Optional driver information
+    header: "Driver name",
+    cell: ({ row }) => {
+      const bus = row.original;
+      // const driverName = row.getValue("driver_name");
+      const driverId = bus.driver_id;
+      return driverId ? <div>{row.getValue("driver_name")}</div> : <div>-</div>; // Display "-" if no driver
     },
-    {
-      accessorKey: "bus_id",
-      header: "Bus ID",
-      cell: ({ row }) => <div>{row.getValue("bus_id")}</div>,
+  },
+  // Add more columns as needed for your bus data
+  {
+    id: "actions",
+    enableHiding: false,
+    cell: ({ row }) => {
+      const bus = row.original;
+      // Replace these actions with your actual logic
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuItem
+              onClick={() => console.log("Edit bus", bus)} // Replace with your edit action
+            >
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => console.log("Delete bus", bus)} // Replace with your delete action
+            >
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
     },
-    {
-      accessorKey: "plate_number",
-      header: "Plate Number",
-      cell: ({ row }) => <div>{row.getValue("plate_number")}</div>,
-    },
-    {
-      accessorKey: "capacity",
-      header: "Capacity",
-      cell: ({ row }) => <div>{row.getValue("capacity")}</div>,
-    },
-    /* {
-      accessorKey: "driver_id", // Optional driver information
-      header: "Driver ID",
-      cell: ({ row }) => {
-        const driverId = row.getValue("driver_id");
-        return driverId ? <div>{driverId}</div> : <div>-</div>; // Display "-" if no driver
-      },
-    }, */
-    // Add more columns as needed for your bus data
-    {
-      id: "actions",
-      enableHiding: false,
-      cell: ({ row }) => {
-        const bus = row.original;
-        // Replace these actions with your actual logic
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => console.log("Edit bus", bus)} // Replace with your edit action
-              >
-                Edit
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => console.log("Delete bus", bus)} // Replace with your delete action
-              >
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
-    },
-  ];
-  
+  },
+];
 
 export function BusTable() {
   const { toast } = useToast();
@@ -147,15 +153,25 @@ export function BusTable() {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [loading, setLoading] = React.useState<boolean>(true);
-  const [data, setData] = React.useState<Bus[]>([]);
+  const [data, setData] = React.useState<BusDetails[]>([]);
   const fetchData = async () => {
     setLoading(true);
     const buses = await getAllBuses();
-    
-    setData(buses);
+    const busesWithNames = await Promise.all(
+      buses.map(async (bus) => {
+        if(bus.driver_id){
+          const driver = await getProfileById(bus.driver_id as string) as Profile
+          const driver_name = driver.first_name;
+        return { ...bus, driver_name };
+        }else return bus
+        
+      })
+    );
+
+    setData(busesWithNames);
     setLoading(false);
   };
-  
+
   React.useEffect(() => {
     fetchData();
   }, []);
@@ -178,7 +194,6 @@ export function BusTable() {
       rowSelection,
     },
   });
-
 
   if (loading) {
     return <div>Loading...</div>;

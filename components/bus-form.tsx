@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getAllLocations, createRoute, getLocationNameById } from "@/utils/supabase/queries";
+import { getAllLocations, createRoute, getLocationNameById, getFreeDrivers, getPlateNumbers, createBus } from "@/utils/supabase/queries";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,7 +45,7 @@ import {
     SelectTrigger,
     SelectValue,
   } from "@/components/ui/select";
-import { Location } from "@/types";
+import { busSchema, Location, Profile } from "@/types";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/utils";
 import { Input } from "./ui/input";
@@ -67,34 +67,37 @@ const routeSchema = z.object({
 
 const BusForm = () => {
   const { toast } = useToast();
-  const [locations, setLocations] = useState<Location[]>([]);
-  const form = useForm<z.infer<typeof routeSchema>>({
-    resolver: zodResolver(routeSchema),
+  const [freeDrivers, setFreeDrivers] = useState<Profile[]>([]);
+  const [plateNumbers, setPlateNumbers] = useState<string[]>([]);
+  const form = useForm<z.infer<typeof busSchema>>({
+    resolver: zodResolver(busSchema),
   });
 
   useEffect(() => {
     const fetchData = async () => {
-      const locationData = await getAllLocations();
-      setLocations(locationData);
+      const fd = await getFreeDrivers();
+      setFreeDrivers(fd);
+      const pn = await getPlateNumbers();
+      setPlateNumbers(pn);
     };
 
     fetchData();
   }, []);
 
-  const onSubmit = async (values: z.infer<typeof routeSchema>) => {
-    if (values.start_location_id === values.end_location_id) {
+  const onSubmit = async (values: z.infer<typeof busSchema>) => {
+    if (plateNumbers.includes(values.plate_number)) {
       toast({
         variant: "destructive",
-        title: "Start and end locations must be different.",
+        title: "This plate number already exists",
       });
       return;
     }
 
-    const createdRoute = await createRoute(values);
-    if (createdRoute) {
+    const createdbus = await createBus(values);
+    if (createdbus) {
       toast({
-        title: "Route added successfully",
-        description: "You can now use this route for travels.",
+        title: "Bus added successfully",
+        description: "You can now use this bus for travels.",
       });
     } else {
       toast({
@@ -112,103 +115,87 @@ const BusForm = () => {
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
           <DrawerHeader>
-            <DrawerTitle>Add a new route</DrawerTitle>
+            <DrawerTitle>Add a new bus</DrawerTitle>
             <DrawerDescription>
-              Add a new route to create new travels
+              Add a new bus to create new travels
             </DrawerDescription>
           </DrawerHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
+            <FormField
+              control={form.control}
+              name="plate_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Plate number</FormLabel>
+                  <FormControl>
+                    <Input
+                      required
+                      type="text"
+                      placeholder="AA-0000"
+                      id="plate_number"
+                      className="col-span-3"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>You should follow this format "AA-0000"</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
               <FormField
                 control={form.control}
-                name="start_location_id"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Start Location</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select start location" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations.map((location) => (
-                          <SelectItem
-                            key={location.location_id}
-                            value={location.location_id}
-                          >
-                            {location.location_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="end_location_id"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>End Location</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select end location" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {locations.map((location) => (
-                          <SelectItem
-                            key={location.location_id}
-                            value={location.location_id}
-                          >
-                            {location.location_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="distance"
+                name="capacity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Distance</FormLabel>
+                    <FormLabel>Capacity</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        placeholder="Enter distance"
+                        placeholder="Enter capacity"
                         {...field}
                       />
                     </FormControl>
+                      <FormDescription>Set the amount of places of the bus</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
-                control={form.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Duration</FormLabel>
+              control={form.control}
+              name="driver_id"
+              render={({ field }) => (
+                <FormItem className="pb-20">
+                  <FormLabel>Driver</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    disabled={freeDrivers.length == 0}
+                    // defaultValue={userData.role}
+                  >
                     <FormControl>
-                      <Input
-                        type="text"
-                        placeholder="Enter duration"
-                        {...field}
-                      />
+                      <SelectTrigger>
+                        <SelectValue placeholder={freeDrivers.length > 0 ? `Choose a driver` : `No driver availble`} />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <SelectContent>
+                      {freeDrivers.map(driver => (
+                        <SelectItem
+                          key={driver.id}
+                          value={driver.id}
+                        >
+                          {driver.first_name} {driver.last_name}
+                        </SelectItem>
+                      ))}
+                      
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Assign a driver to this bus</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
               <Button className="w-full mt-4" type="submit">
-                Create Route
+                Add Bus
               </Button>
             </form>
           </Form>
