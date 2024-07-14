@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getAllLocations, createRoute, getLocationNameById } from "@/utils/supabase/queries";
+import {
+  getAllLocations,
+  createRoute,
+  getLocationNameById,
+} from "@/utils/supabase/queries";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,50 +21,39 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-  } from "@/components/ui/select";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Location } from "@/types";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/utils";
 import { Input } from "./ui/input";
 
-
-
-const routeSchema = z.object({
+const routeSchema = z
+  .object({
     start_location_id: z.string().min(1, "Start location is required"),
     end_location_id: z.string().min(1, "End location is required"),
-    distance: z.number().positive("Distance must be a positive number").transform((val) => parseFloat(val as any))
-    .refine((val) => !isNaN(val) && val > 0, {
-      message: "Distance must be a positive number",
-    }),
+    distance: z
+      .number()
+      .positive("Distance must be a positive number")
+      .transform((val) => parseFloat(val as any))
+      .refine((val) => !isNaN(val) && val > 0, {
+        message: "Distance must be a positive number",
+      }),
     duration: z.string().min(1),
-  }).refine((data) => data.start_location_id !== data.end_location_id, {
+  })
+  .refine((data) => data.start_location_id !== data.end_location_id, {
     message: "Start and end locations must be different",
     path: ["end_location_id"], // specify the path to show the error
   });
@@ -105,7 +98,135 @@ const RouteForm = () => {
   };
 
   return (
-    <Drawer>
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="outline">New Route</Button>
+      </SheetTrigger>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>Add a new route</SheetTitle>
+          <SheetDescription>
+            Add a new route to create new travels
+          </SheetDescription>
+        </SheetHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <FormField
+              control={form.control}
+              name="start_location_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Start Location</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select start location" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {locations.map((location) => (
+                        <SelectItem
+                          key={location.location_id}
+                          value={location.location_id}
+                        >
+                          {location.location_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="end_location_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>End Location</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select end location" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {locations.map((location) => (
+                        <SelectItem
+                          key={location.location_id}
+                          value={location.location_id}
+                        >
+                          {location.location_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="distance"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Distance</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter distance"
+                      {...field}
+                      value={field.value || ""} // Ensure the value is not undefined
+                      onChange={(e) => field.onChange(e.target.valueAsNumber)} // Convert to number
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="duration"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duration</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="Enter duration"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button className="w-full mt-4" type="submit">
+              Add Route
+            </Button>
+          </form>
+        </Form>
+        {/* <SheetFooter>
+        <SheetClose asChild>
+          <Button type="submit">Save changes</Button>
+        </SheetClose>
+      </SheetFooter> */}
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+export default RouteForm;
+
+/* 
+
+<Drawer>
       <DrawerTrigger asChild>
         <Button variant="outline">New Route</Button>
       </DrawerTrigger>
@@ -220,7 +341,5 @@ const RouteForm = () => {
         </div>
       </DrawerContent>
     </Drawer>
-  );
-};
 
-export default RouteForm;
+*/
