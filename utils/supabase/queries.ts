@@ -323,7 +323,7 @@ export async function getFreeDrivers(): Promise<Profile[]> {
   return freeDrivers.filter((driver) => driver !== null) as Profile[]; // Filter out any null profiles
 }
 
-export async function getAllLocations(): Promise<Location[]> {
+export const getAllLocations = cache(async (): Promise<Location[]> => {
   try {
     const { data, error } = await supabase.from("locations").select("*");
 
@@ -334,7 +334,7 @@ export async function getAllLocations(): Promise<Location[]> {
     console.error("Error fetching locations:", error);
     return [];
   }
-}
+});
 
 export async function getLocationById(
   locationId: string
@@ -354,9 +354,7 @@ export async function getLocationById(
   }
 }
 
-export async function getLocationNameById(
-  locationId: string
-): Promise<string | null> {
+export const getLocationNameById = cache(async (locationId: string): Promise<string | null> => {
   try {
     const { data, error } = await supabase
       .from("locations")
@@ -373,7 +371,7 @@ export async function getLocationNameById(
     console.error("Error fetching location name:", error);
     return null;
   }
-}
+});
 
 export async function getAllRoutes(): Promise<Route[]> {
   try {
@@ -448,7 +446,7 @@ export async function getRouteLocations(
   }
 }
 
-export async function getAllBuses(): Promise<Bus[]> {
+export const getAllBuses = cache(async (): Promise<Bus[]> => {
   try {
     const { data, error } = await supabase.from("buses").select("*");
 
@@ -459,7 +457,7 @@ export async function getAllBuses(): Promise<Bus[]> {
     console.error("Error fetching buses:", error);
     return [];
   }
-}
+});
 
 export async function getBusById(busId: string): Promise<Bus | null> {
   try {
@@ -551,7 +549,7 @@ export async function getBusIdByTravelId(
   }
 }
 
-export async function getAllTravels(): Promise<Travel[]> {
+export const getAllTravels = cache(async (): Promise<Travel[]> => {
   try {
     const { data, error } = await supabase.from("travels").select("*");
 
@@ -562,7 +560,7 @@ export async function getAllTravels(): Promise<Travel[]> {
     console.error("Error fetching travels:", error);
     return [];
   }
-}
+});
 
 export async function getTravelById(travelId: string): Promise<Travel | null> {
   try {
@@ -603,7 +601,7 @@ export async function getLatestTravels(amount: number): Promise<Travel[]> {
   }
 }
 
-export async function getAllTickets(): Promise<Ticket[]> {
+export const getAllTickets = cache(async (): Promise<Ticket[]> => {
   try {
     const { data, error } = await supabase.from("tickets").select("*");
 
@@ -614,7 +612,7 @@ export async function getAllTickets(): Promise<Ticket[]> {
     console.error("Error fetching tickets:", error);
     return [];
   }
-}
+});
 
 export async function getTicketById(ticketId: string): Promise<Ticket | null> {
   try {
@@ -632,7 +630,7 @@ export async function getTicketById(ticketId: string): Promise<Ticket | null> {
   }
 }
 
-export async function getAllBookings(): Promise<Booking[]> {
+export const getAllBookings = cache(async (): Promise<Booking[]> => {
   try {
     const { data, error } = await supabase.from("bookings").select("*");
 
@@ -643,7 +641,7 @@ export async function getAllBookings(): Promise<Booking[]> {
     console.error("Error fetching bookings:", error);
     return [];
   }
-}
+});
 
 export async function getBookingById(
   bookingId: string
