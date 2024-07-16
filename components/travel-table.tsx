@@ -18,6 +18,7 @@ import {
   ChevronDown,
   MoreHorizontal,
   RefreshCw,
+  Route as RouteIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -46,13 +47,30 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Location } from "@/types";
-import { deleteLocation, getAllLocations } from "@/utils/supabase/queries";
-import LocationForm from "@/components/location-form";
+import { Bus, Route, Travel } from "@/types";
+import {
+  deleteRoute,
+  getAllRoutes,
+  getAllTravels,
+  getBusById,
+  getBusIdByTravelId,
+  getLocationNameById,
+  getPlateNumberByBusId,
+  getRouteIdByTravelId,
+  getRouteLocations,
+} from "@/utils/supabase/queries";
+import RouteForm from "@/components/route-form";
 import { useToast } from "./ui/use-toast";
+import TravelForm from "./travel-form";
 
+interface TravelDetails extends Travel {
+  bus_plate: string;
+  places_amount: number;
+  departure_name: string;
+  arrival_name: string;
+}
 
-const columns: ColumnDef<Location>[] = [
+const columns: ColumnDef<TravelDetails>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -76,17 +94,68 @@ const columns: ColumnDef<Location>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "location_name",
-    header: "Location Name",
-    cell: ({ row }) => <div>{row.getValue("location_name")}</div>,
+    accessorKey: "travel_date",
+    header: "Date",
+    cell: ({ row }) => {
+      const travel = row.original;
+      return (
+        <div>
+          {new Date(travel.travel_date).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </div>
+      );
+    },
   },
-  // Add more columns as needed for your location data
+  {
+    accessorKey: "departure_name",
+    header: "Start Location",
+    cell: ({ row }) => {
+      return (
+        <div className="text-medium text-sky-600">
+          {row.getValue("departure_name")}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "arrival_name",
+    header: "End Location",
+    cell: ({ row }) => {
+      return (
+        <div className="text-medium text-orange-600">
+          {row.getValue("arrival_name")}
+        </div>
+      );
+    },
+  },
+  {
+    accessorKey: "bus_plate",
+    header: "Bus",
+    cell: ({ row }) => <div>{row.getValue("bus_plate")}</div>,
+  },
+
+  {
+    accessorKey: "places_amount",
+    header: "No places",
+    cell: ({ row }) => <div>{row.getValue("places_amount")}</div>,
+  },
+  {
+    accessorKey: "price",
+    header: "Price",
+    cell: ({ row }) => (
+      <div className="text-medium text-green-600">{`${row.getValue(
+        "price"
+      )} XOF`}</div>
+    ),
+  },
   {
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      const location = row.original;
-      // Replace these actions with your actual logic
+      const route = row.original;
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -98,23 +167,25 @@ const columns: ColumnDef<Location>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => console.log("Edit location", location)} // Replace with your edit action
+              onClick={() => console.log("Edit route", route)} // Replace with your edit action
             >
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={async () =>  {
-                // const { toast } = useToast();
-                const deleted = await deleteLocation(location.location_id)
-                /* deleted === true ?
-                toast({
-                    title: "Location added successfully",
-                    description: "You can check locations list or add a new route with it.",
-                  })
-                  : toast({
-                    title: "Error deleting location",
-                    description: "Failed to delete the location.",
-                  }); */
+              onClick={async () => {
+                const deleted = await deleteRoute(route.route_id);
+                /* if (deleted) {
+                  toast({
+                    title: "Route deleted successfully",
+                    description: "You have successfully deleted the route.",
+                  });
+                  fetchData(); // Re-fetch data after deletion
+                } else {
+                  toast({
+                    title: "Error deleting route",
+                    description: "Failed to delete the route.",
+                  });
+                } */
               }} // Replace with your delete action
             >
               Delete
@@ -126,12 +197,8 @@ const columns: ColumnDef<Location>[] = [
   },
 ];
 
-const MemoizedLocationTable = React.memo(LocationTable);
-
-export function LocationTable() {
-    const { toast } = useToast();
-    const [loading, setLoading] = React.useState(false);
-
+export default function TravelTable() {
+  const { toast } = useToast();
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -139,22 +206,46 @@ export function LocationTable() {
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-
-  const [data, setData] = React.useState<Location[]>([]);
-  const fetchData = React.useCallback(async () => {
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [data, setData] = React.useState<TravelDetails[]>([]);
+  const fetchData = async () => {
     setLoading(true);
-    try {
-      const locations = await getAllLocations();
-      setData(locations);
-    } catch (error) {
-      console.error(`Error fetching data: ${error}`);
-      toast({
-        title: "Error",
-        description: "Failed to fetch data. Please try again.",
-      });
-    }
+    const travels = await getAllTravels();
+    const travelWithDetails = await Promise.all(
+      travels.map(async (travel) => {
+        const busDetails = (await getBusById(
+          (await getBusIdByTravelId(travel.travel_id)) as string
+        )) as Bus;
+        const bus_plate = busDetails.plate_number;
+        const places_amount = busDetails.capacity;
+        const locations = await getRouteLocations(
+          (await getRouteIdByTravelId(travel.travel_id)) as string
+        );
+
+        // Extract departure and arrival locations from locations
+        const departureId = locations?.startLocationId;
+        const arrivalId = locations?.endLocationId;
+
+        const departure_name = (await getLocationNameById(
+          departureId as string
+        )) as string;
+        const arrival_name = (await getLocationNameById(
+          arrivalId as string
+        )) as string;
+
+        return {
+          ...travel,
+          bus_plate,
+          departure_name,
+          arrival_name,
+          places_amount,
+        };
+      })
+    );
+    setData(travelWithDetails);
     setLoading(false);
-  }, []);
+  };
+
   React.useEffect(() => {
     fetchData();
   }, []);
@@ -178,17 +269,24 @@ export function LocationTable() {
     },
   });
 
-  
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between py-4">
         <Input
           placeholder="Filter names..."
           value={
-            (table.getColumn("location_name")?.getFilterValue() as string) ?? ""
+            (table
+              .getColumn("start_location_name")
+              ?.getFilterValue() as string) ?? ""
           }
           onChange={(event) =>
-            table.getColumn("location_name")?.setFilterValue(event.target.value)
+            table
+              .getColumn("start_location_name")
+              ?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
         />
@@ -206,7 +304,7 @@ export function LocationTable() {
             </Tooltip>
           </TooltipProvider>
 
-          <LocationForm />
+          <TravelForm />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -218,20 +316,18 @@ export function LocationTable() {
               {table
                 .getAllColumns()
                 .filter((column) => column.getCanHide())
-                .map((column) => {
-                  return (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      className="capitalize"
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  );
-                })}
+                .map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    className="capitalize"
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -241,18 +337,16 @@ export function LocationTable() {
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>

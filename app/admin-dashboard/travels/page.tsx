@@ -1,12 +1,12 @@
-import TravelForm from '@/components/travel-form'
+import TravelTable from '@/components/travel-table'
 import React from 'react'
 
 type Props = {}
 
 const travels = (props: Props) => {
   return (
-    <div>
-      <TravelForm />
+    <div className=' p-4 px-64' >
+      <TravelTable />
     </div>
   )
 }
