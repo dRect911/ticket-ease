@@ -61,6 +61,7 @@ import {
 } from "@/utils/supabase/queries";
 import RouteForm from "@/components/route-form";
 import { useToast } from "./ui/use-toast";
+import TravelForm from "./travel-form";
 
 interface TravelDetails extends Travel {
   bus_plate: string;
@@ -303,7 +304,7 @@ export default function TravelTable() {
             </Tooltip>
           </TooltipProvider>
 
-          <RouteForm />
+          <TravelForm />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
