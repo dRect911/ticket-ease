@@ -126,8 +126,12 @@ const columns: ColumnDef<Location>[] = [
   },
 ];
 
+const MemoizedLocationTable = React.memo(LocationTable);
+
 export function LocationTable() {
     const { toast } = useToast();
+    const [loading, setLoading] = React.useState(false);
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -137,10 +141,20 @@ export function LocationTable() {
   const [rowSelection, setRowSelection] = React.useState({});
 
   const [data, setData] = React.useState<Location[]>([]);
-  const fetchData = async () => {
-    const locations = await getAllLocations();
-    setData(locations);
-  };
+  const fetchData = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const locations = await getAllLocations();
+      setData(locations);
+    } catch (error) {
+      console.error(`Error fetching data: ${error}`);
+      toast({
+        title: "Error",
+        description: "Failed to fetch data. Please try again.",
+      });
+    }
+    setLoading(false);
+  }, []);
   React.useEffect(() => {
     fetchData();
   }, []);
@@ -163,6 +177,8 @@ export function LocationTable() {
       rowSelection,
     },
   });
+
+  
   return (
     <div className="w-full">
       <div className="flex items-center justify-between py-4">
