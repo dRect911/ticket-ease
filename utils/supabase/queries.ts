@@ -14,6 +14,7 @@ import {
   travelSchema,
   ticketSchema,
   Profile,
+  routeSchema,
 } from "@/types";
 import { z } from "zod";
 
@@ -67,7 +68,7 @@ export async function createLocation(
   }
 }
 
-const routeSchema = z
+/* const routeSchema = z
   .object({
     start_location_id: z.string().min(1, "Start location is required"),
     end_location_id: z.string().min(1, "End location is required"),
@@ -83,7 +84,7 @@ const routeSchema = z
   .refine((data) => data.start_location_id !== data.end_location_id, {
     message: "Start and end locations must be different",
     path: ["end_location_id"], // specify the path to show the error
-  });
+  }); */
 
 
 /**
@@ -95,7 +96,7 @@ const routeSchema = z
  * @see https://www.typescriptlang.org/docs/handbook/writing-modular-code.html#typescript-documentation-comments
  */
 export async function createRoute(
-  route: z.infer<typeof routeSchema>
+  route: Omit<(z.infer<typeof routeSchema>), 'route_id' >
 ): Promise<Route | null> {
   try {
     const { data, error } = await supabase.from("routes").insert(route).select();
@@ -142,10 +143,10 @@ export async function createBus(
  * @see https://www.typescriptlang.org/docs/handbook/writing-modular-code.html#typescript-documentation-comments
  */
 export async function createTravel(
-  travel: z.infer<typeof travelSchema>
+  travel: Omit<(z.infer<typeof travelSchema>), 'travel_id' >
 ): Promise<Travel | null> {
   try {
-    const { data, error } = await supabase.from("travels").insert(travel);
+    const { data, error } = await supabase.from("travels").insert(travel).select();
 
     if (error) throw error;
 
@@ -459,6 +460,22 @@ export const getAllBuses = cache(async (): Promise<Bus[]> => {
   }
 });
 
+export async function getBusesWithDrivers(): Promise<Bus[]> {
+  try {
+    const { data, error } = await supabase
+      .from("buses")
+      .select("*")
+      .not("driver_id", "is", null);
+
+    if (error) throw error;
+
+    return data as Bus[]; // Ensure the data is typed as an array of Bus
+  } catch (error) {
+    console.error("Error fetching buses with drivers:", error);
+    return [];
+  }
+}
+
 export async function getBusById(busId: string): Promise<Bus | null> {
   try {
     const { data, error } = await supabase
@@ -474,6 +491,8 @@ export async function getBusById(busId: string): Promise<Bus | null> {
     return null;
   }
 }
+
+
 
 export async function getPlateNumbers(): Promise<string[]> {
   const { data, error } = await supabase.from("buses").select("plate_number"); // Get all plate numbers from the buses table
