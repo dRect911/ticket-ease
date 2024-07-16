@@ -26,6 +26,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { useState } from "react";
 
 const locationSchema = z.object({
   location_name: z.string().min(1, "Location name is required"),
@@ -34,27 +35,25 @@ const locationSchema = z.object({
 const LocationForm = () => {
   const { toast } = useToast();
 
+  const [loading, setLoading] = useState(false);
   const form = useForm<z.infer<typeof locationSchema>>({
     resolver: zodResolver(locationSchema),
-    /* defaultValues: {
-      email: "",
-      password: "",
-    }, */
   });
 
   const onSubmit = async (values: z.infer<typeof locationSchema>) => {
-    const createdLocation = await createLocation(values.location_name);
+    setLoading(true);
+    const createdLocation = await createLocation(values.location_name).catch((error) => {
+      toast({
+        variant: "destructive",
+        title: "Error creating location",
+        description: error.message,
+      });
+    });
+    setLoading(false);
     if (createdLocation) {
       toast({
         title: "Location added successfully",
         description: "You can check locations list or add a new route with it.",
-      });
-    } else {
-      // Handle creation errors
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        // description: error.message,
       });
     }
   };
@@ -84,9 +83,9 @@ const LocationForm = () => {
                       <FormLabel>Name</FormLabel>
                       <FormControl>
                         <Input
-                          // disabled={loading}
+                          disabled={loading}
                           type="text"
-                          placeholder="Type in the location name"
+                          placeholder="Enter the location name here"
                           {...field}
                         />
                       </FormControl>
@@ -96,7 +95,7 @@ const LocationForm = () => {
                   )}
                 />
               </FormControl>
-              <Button className="w-full" type="submit">
+              <Button className="w-full" disabled={loading} type="submit">
                 Create Location
               </Button>
             </form>
