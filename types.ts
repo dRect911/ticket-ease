@@ -9,11 +9,21 @@ export interface Location extends z.infer<typeof locationSchema> {}
 
 export const routeSchema = z.object({
   route_id: z.string().uuid(), // Assuming UUID for route_id
-  start_location_id: z.string().uuid(), // Assuming UUID for location_id
-  end_location_id: z.string().uuid(), // Assuming UUID for location_id
-  distance: z.number().positive(), // Distance must be positive
-  duration: z.string().min(1), // Duration must not be empty
-});
+  start_location_id: z.string().min(1, "Start location is required"),
+    end_location_id: z.string().min(1, "End location is required"),
+    distance: z
+      .number()
+      .positive("Distance must be a positive number")
+      .transform((val) => parseFloat(val as any))
+      .refine((val) => !isNaN(val) && val > 0, {
+        message: "Distance must be a positive number",
+      }),
+    duration: z.string().min(1),
+  })
+  .refine((data) => data.start_location_id !== data.end_location_id, {
+    message: "Start and end locations must be different",
+    path: ["end_location_id"], // specify the path to show the error
+  });
 
 export interface Route extends z.infer<typeof routeSchema> {}
 
