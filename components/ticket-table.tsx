@@ -47,19 +47,32 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Ticket } from "@/types";
+import { Bus, Ticket, Travel } from "@/types";
 import {
   deleteTicket,
   getAllTickets,
   getTicketById,
   getTravelById,
   getBusIdByTravelId,
+  getBusById,
+  getRouteLocations,
+  getRouteIdByTravelId,
+  getLocationNameById,
 
 } from "@/utils/supabase/queries";
 import TicketForm from "@/components/ticket-form";
 import { useToast } from "./ui/use-toast";
 
-const columns: ColumnDef<Ticket>[] = [
+
+interface TicketDetails extends Ticket {
+  bus_plate: string;
+  departure_name: string;
+  arrival_name: string;
+  price: number;
+  date: Date;
+}
+
+const columns: ColumnDef<TicketDetails>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -83,24 +96,35 @@ const columns: ColumnDef<Ticket>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "departure",
+    accessorKey: "departure_name",
     header: "Departure",
-    cell: ({ row }) => <div>{row.getValue("departure")}</div>,
+    cell: ({ row }) => <div>{row.getValue("departure_name")}</div>,
   },
   {
-    accessorKey: "arrival",
+    accessorKey: "arrival_name",
     header: "Arrival",
-    cell: ({ row }) => <div>{row.getValue("arrival")}</div>,
+    cell: ({ row }) => <div>{row.getValue("arrival_name")}</div>,
   },
   {
     accessorKey: "date",
     header: "Date",
-    cell: ({ row }) => <div>{row.getValue("date")}</div>,
+    cell: ({ row }) => {
+      const ticket = row.original;
+      return (
+        <div>
+          {new Date(ticket.date).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </div>
+      );
+    },
   },
   {
-    accessorKey: "bus_plate_number",
+    accessorKey: "bus_plate",
     header: "Bus Plate Number",
-    cell: ({ row }) => <div>{row.getValue("bus_plate_number")}</div>,
+    cell: ({ row }) => <div>{row.getValue("bus_plate")}</div>,
   },
   {
     accessorKey: "price",
@@ -160,15 +184,36 @@ export function TicketTable() {
     React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [loading, setLoading] = React.useState<boolean>(true);
-  const [data, setData] = React.useState<Ticket[]>([]);
+  const [data, setData] = React.useState<TicketDetails[]>([]);
 
   const fetchData = async () => {
     setLoading(true);
     const tickets = await getAllTickets();
     const ticketsWithDetails = await Promise.all(
       tickets.map(async (ticket) => {
-        const travelDetails = await getTravelById(ticket.travel_id);
-        return { ...ticket, ...travelDetails };
+        const travelDetails = await getTravelById(ticket.travel_id) as Travel;
+        const busDetails = (await getBusById(
+          (await getBusIdByTravelId(travelDetails.travel_id)) as string
+        )) as Bus;
+        const bus_plate = busDetails.plate_number;
+        const locations = await getRouteLocations(
+          (await getRouteIdByTravelId(travelDetails.travel_id)) as string
+        );
+
+        const price = travelDetails.price
+        const date = travelDetails.travel_date
+        // Extract departure and arrival locations from locations
+        const departureId = locations?.startLocationId;
+        const arrivalId = locations?.endLocationId;
+
+        const departure_name = (await getLocationNameById(
+          departureId as string
+        )) as string;
+        const arrival_name = (await getLocationNameById(
+          arrivalId as string
+        )) as string;
+        return { ...ticket, departure_name, arrival_name, price, bus_plate, date };
+
       })
     );
     setData(ticketsWithDetails);
