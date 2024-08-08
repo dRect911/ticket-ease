@@ -374,7 +374,7 @@ export const getLocationNameById = cache(async (locationId: string): Promise<str
   }
 });
 
-export async function getAllRoutes(): Promise<Route[]> {
+export const getAllRoutes = cache(async(): Promise<Route[]> => {
   try {
     const { data, error } = await supabase.from("routes").select("*");
 
@@ -385,7 +385,7 @@ export async function getAllRoutes(): Promise<Route[]> {
     console.error("Error fetching routes:", error);
     return [];
   }
-}
+})
 export async function getRouteById(routeId: string): Promise<Route | null> {
   try {
     const { data, error } = await supabase
