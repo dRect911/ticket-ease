@@ -9,7 +9,53 @@ import { UserMetadata } from "@supabase/supabase-js";
 import { getProfileById, getUser } from "@/utils/supabase/queries";
 import { supabase } from "@/utils/supabase/client";
 import { Profile } from "@/types";
+import useSWR from "swr";
+import {
+  Luggage,
+  RefreshCw,
+  Ticket as TicketIcon,
+  Bus as BusIcon,
+  Route as RouteIcon,
+} from "lucide-react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Travel, Bus, Ticket, Booking, Location, Route } from "@/types";
+import {
+  getAllBookings,
+  getAllBuses,
+  getAllLocations,
+  getAllRoutes,
+  getAllTickets,
+  getAllTravels,
+  getLatestTravels,
+} from "@/utils/supabase/queries";
+import LatestTravelsTable from "@/components/latest-travels-table";
 
 
 

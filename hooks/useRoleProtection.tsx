@@ -3,9 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { isAdmin, isDriver } from "@/utils/roleCheck";
+import { isAdmin, isCustomer, isDriver } from "@/utils/roleCheck";
 
-export function useRoleProtection(requiredRole: "admin" | "driver") {
+export function useRoleProtection(requiredRole: "admin" | "driver" | "user") {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
@@ -16,6 +16,8 @@ export function useRoleProtection(requiredRole: "admin" | "driver") {
         authorized = await isAdmin();
       } else if (requiredRole === "driver") {
         authorized = await isDriver();
+      }else if (requiredRole === "user") {
+        authorized = await isCustomer();
       }
       setIsAuthorized(authorized);
       if (!authorized) {

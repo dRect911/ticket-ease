@@ -90,7 +90,6 @@ export async function createLocation(
     path: ["end_location_id"], // specify the path to show the error
   }); */
 
-
 /**
  * Creates a new route in the database.
  *
@@ -100,15 +99,18 @@ export async function createLocation(
  * @see https://www.typescriptlang.org/docs/handbook/writing-modular-code.html#typescript-documentation-comments
  */
 export async function createRoute(
-  route: Omit<(z.infer<typeof routeSchema>), 'route_id' >
+  route: Omit<z.infer<typeof routeSchema>, "route_id">
 ): Promise<Route | null> {
   try {
-    const { data, error } = await supabase.from("routes").insert(route).select();
+    const { data, error } = await supabase
+      .from("routes")
+      .insert(route)
+      .select();
 
     if (error) throw error;
 
     if (data) return data[0] as Route; // Assuming single record inserted
-    return null
+    return null;
   } catch (error) {
     console.error("Error creating route:", error);
     return null;
@@ -123,7 +125,7 @@ export async function createRoute(
  * @throws An error if the insertion fails.
  */
 export async function createBus(
-  bus: Omit<(z.infer<typeof busSchema>), 'bus_id' >
+  bus: Omit<z.infer<typeof busSchema>, "bus_id">
 ): Promise<Bus | null> {
   try {
     const { data, error } = await supabase.from("buses").insert(bus).select();
@@ -147,10 +149,13 @@ export async function createBus(
  * @see https://www.typescriptlang.org/docs/handbook/writing-modular-code.html#typescript-documentation-comments
  */
 export async function createTravel(
-  travel: Omit<(z.infer<typeof travelSchema>), 'travel_id' >
+  travel: Omit<z.infer<typeof travelSchema>, "travel_id">
 ): Promise<Travel | null> {
   try {
-    const { data, error } = await supabase.from("travels").insert(travel).select();
+    const { data, error } = await supabase
+      .from("travels")
+      .insert(travel)
+      .select();
 
     if (error) throw error;
 
@@ -187,14 +192,14 @@ export async function createTicket(
 
 export async function createBooking(
   booking: z.infer<typeof bookingSchema>
-): Promise<Booking | null> {
+): Promise<Booking | null | true> {
   try {
     const { data, error } = await supabase.from("bookings").insert(booking);
 
     if (error) throw error;
 
     if (data) return data[0] as Booking; // Assuming single record inserted
-    return null;
+    return true;
   } catch (error) {
     console.error("Error creating booking:", error);
     return null;
@@ -359,26 +364,28 @@ export async function getLocationById(
   }
 }
 
-export const getLocationNameById = cache(async (locationId: string): Promise<string | null> => {
-  try {
-    const { data, error } = await supabase
-      .from("locations")
-      .select("location_name")
-      .eq("location_id", locationId)
-      .single();
+export const getLocationNameById = cache(
+  async (locationId: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase
+        .from("locations")
+        .select("location_name")
+        .eq("location_id", locationId)
+        .single();
 
-    if (error) throw error;
+      if (error) throw error;
 
-    if (!data) return null;
+      if (!data) return null;
 
-    return data.location_name;
-  } catch (error) {
-    console.error("Error fetching location name:", error);
-    return null;
+      return data.location_name;
+    } catch (error) {
+      console.error("Error fetching location name:", error);
+      return null;
+    }
   }
-});
+);
 
-export const getAllRoutes = cache(async(): Promise<Route[]> => {
+export const getAllRoutes = cache(async (): Promise<Route[]> => {
   try {
     const { data, error } = await supabase.from("routes").select("*");
 
@@ -389,7 +396,7 @@ export const getAllRoutes = cache(async(): Promise<Route[]> => {
     console.error("Error fetching routes:", error);
     return [];
   }
-})
+});
 export async function getRouteById(routeId: string): Promise<Route | null> {
   try {
     const { data, error } = await supabase
@@ -495,8 +502,6 @@ export async function getBusById(busId: string): Promise<Bus | null> {
     return null;
   }
 }
-
-
 
 export async function getPlateNumbers(): Promise<string[]> {
   const { data, error } = await supabase.from("buses").select("plate_number"); // Get all plate numbers from the buses table
@@ -647,6 +652,24 @@ export async function getTicketById(ticketId: string): Promise<Ticket | null> {
     if (error) throw error;
 
     return (data[0] as Ticket) || null; // Check for empty data
+  } catch (error) {
+    console.error("Error fetching ticket:", error);
+    return null;
+  }
+}
+
+export async function getTicketsByTravelId(
+  travelId: string
+): Promise<Ticket[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from("tickets")
+      .select("*")
+      .eq("travel_id", travelId);
+
+    if (error) throw error;
+
+    return data as Ticket[]; // Cast the data to the Ticket type
   } catch (error) {
     console.error("Error fetching ticket:", error);
     return null;

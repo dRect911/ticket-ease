@@ -21,3 +21,7 @@ export async function isAdmin(): Promise<boolean> {
 export async function isDriver(): Promise<boolean> {
   return hasRole("driver");
 }
+
+export async function isCustomer(): Promise<boolean> {
+  return hasRole("user");
+}
