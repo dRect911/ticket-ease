@@ -13,6 +13,7 @@ import {
   createBooking,
   getTicketsByTravelId,
   getUser,
+  updateTicket,
 } from "@/utils/supabase/queries";
 import { User } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
@@ -66,6 +67,24 @@ const BookTicket: React.FC<BookTicketProps> = ({ travel }) => {
         setTickets((prevTickets) =>
           prevTickets.filter((t) => t.ticket_id !== ticket.ticket_id)
         );
+        // Update the ticket associated with this booking
+        const updatedTicket = await updateTicket({
+          ...ticket, // Assuming `newBooking` contains a `ticket` field with ticket details
+          status: "booked", // Set the desired status
+        });
+
+        if (updatedTicket) {
+          toast({
+            title: "Ticket updated",
+            description: "Ticket status updated successfully.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Failed to update ticket status",
+            description: "Ticket status could not be updated.",
+          });
+        }
         toast({
           title: "Booking Successful",
           description: `Seat #${ticket.seat_number} booked successfully.`,
