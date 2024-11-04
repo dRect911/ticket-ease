@@ -689,6 +689,30 @@ export const getAllBookings = cache(async (): Promise<Booking[]> => {
   }
 });
 
+export async function getLatestBookings(amount: number): Promise<Booking[]> {
+  if (amount > 0) {
+    amount = Math.min(amount, 100); // Limit to 100 records for performance reasons
+
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .order('booking_date', { ascending: false })
+        .limit(amount);
+
+      if (error) throw error;
+
+      return data as Booking[];
+    } catch (error) {
+      console.error('Error fetching latest bookings:', error);
+      return [];
+    }
+  } else {
+    console.log('Invalid amount. Please provide a positive integer.');
+    return [];
+  }
+}
+
 export async function getBookingById(
   bookingId: string
 ): Promise<Booking | null> {
