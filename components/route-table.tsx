@@ -92,6 +92,7 @@ const columns: ColumnDef<Route>[] = [
       } */
       return <div>{row.getValue("start_location_name")}</div>;
     },
+    enableSorting: true,
   },
   {
     accessorKey: "end_location_name",

@@ -8,6 +8,9 @@ import useLogout from "@/hooks/useLogout";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 
+
+
+
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const router = useRouter();
@@ -46,6 +49,8 @@ export default function Home() {
 
     
   }, []);
+
+
 
 
   return (

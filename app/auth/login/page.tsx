@@ -19,6 +19,9 @@ import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import {login} from './actions'
+
+import { isAdmin, isDriver } from "@/utils/roleCheck";
 
 const formSchema = z.object({
   email: z.string(),
@@ -49,7 +52,15 @@ const Login: React.FC = () => {
     }
   }, [loading]);
 
-
+const redirect = async () => {
+  if ( await isAdmin()) {
+    router.push("/admin-dashboard");
+  } else if (await isDriver()) {
+    router.push("/driver-dashboard");
+  } else {
+    router.push("/dashboard");
+  }
+}
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof formSchema>) {
 
@@ -71,7 +82,8 @@ const Login: React.FC = () => {
         title: "Login successful!",
         description: "You will be redirected to the dashboard.",
       });
-      router.push("/dashboard");
+      // router.push("/dashboard");
+      await redirect();
     }
   }
 

@@ -107,7 +107,7 @@ const TicketForm = () => {
   return (
     <Drawer>
       <DrawerTrigger asChild>
-        <Button variant="outline">New Route</Button>
+        <Button variant="outline">New Ticket</Button>
       </DrawerTrigger>
       <DrawerContent>
         <div className="mx-auto w-full max-w-sm">
