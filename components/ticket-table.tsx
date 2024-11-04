@@ -278,7 +278,7 @@ export function TicketTable() {
             </Tooltip>
           </TooltipProvider>
 
-          <TicketForm />
+          {/* <TicketForm /> */}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

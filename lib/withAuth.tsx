@@ -2,9 +2,12 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/client";
+
+
 
 const withAuth = (WrappedComponent: any) => {
+  const supabase = createClient()
   return (props: any) => {
     const router = useRouter();
 

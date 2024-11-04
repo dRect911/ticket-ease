@@ -1,6 +1,7 @@
 import { SupabaseClient, User } from "@supabase/supabase-js";
 import { cache } from "react";
-import { supabase } from "./client";
+import { createClient } from "./client";
+// import {createClient as createSClient} from '../../app/utils/supabase/server'
 import {
   Bus,
   Location,
@@ -17,6 +18,9 @@ import {
   routeSchema,
 } from "@/types";
 import { z } from "zod";
+
+const supabase = createClient();
+// const supabaseSClient = createSClient()
 
 /* CREATE ACTIONS */
 

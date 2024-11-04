@@ -1,6 +1,8 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { supabase } from "../utils/supabase/client"
+import { createClient } from "@/utils/supabase/client"
+
+const supabase = createClient()
 
 // now deprecated
 // see @/utils/index.ts
