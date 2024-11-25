@@ -1,11 +1,11 @@
+import React from 'react'
 
-export default function Draft() {
- 
+type Props = {}
 
-
+const page = (props: Props) => {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-     
-    </main>
-  );
+    <div>page</div>
+  )
 }
+
+export default page

@@ -78,11 +78,11 @@ const RecentBookings = () => {
             <Avatar className="hidden h-9 w-9 sm:flex">
               <AvatarImage src={booking.profile?.avatar_url || "/default-avatar.png"} alt="Avatar" />
               <AvatarFallback>
-                {booking.profile?.initials || "U"}
+                {`${getInitials(`${booking.profile?.first_name} ${booking.profile?.last_name}`)}` || "U"}
               </AvatarFallback>
             </Avatar>
             <div className="grid gap-1">
-              <p className="text-sm font-medium leading-none">
+              <p className="text-lg font-medium leading-none">
                 {`${booking.profile?.first_name} ${booking.profile?.last_name}` || "Unknown User"}
               </p>
               <p className="text-sm text-muted-foreground">
@@ -100,8 +100,8 @@ const RecentBookings = () => {
                 })}
               </p>
             </div>
-            <div className="ml-auto font-medium">
-              {booking.travel?.price || 4000} XOF
+            <div className="ml-auto font-medium text-emerald-600">
+              {booking.travel.price || 4000} XOF
             </div>
           </div>
         ))}

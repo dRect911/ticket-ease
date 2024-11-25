@@ -58,11 +58,11 @@ import {
   getRouteLocations,
   getRouteIdByTravelId,
   getLocationNameById,
-
 } from "@/utils/supabase/queries";
 import TicketForm from "@/components/ticket-form";
 import { useToast } from "./ui/use-toast";
-
+import useSWR from "swr";
+import tickets from "../app/admin-dashboard/tickets/page";
 
 interface TicketDetails extends Ticket {
   bus_plate: string;
@@ -98,12 +98,24 @@ const columns: ColumnDef<TicketDetails>[] = [
   {
     accessorKey: "departure_name",
     header: "Departure",
-    cell: ({ row }) => <div>{row.getValue("departure_name")}</div>,
+    cell: ({ row }) => {
+      return (
+        <div className="text-medium text-sky-600">
+          {row.getValue("departure_name")}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "arrival_name",
     header: "Arrival",
-    cell: ({ row }) => <div>{row.getValue("arrival_name")}</div>,
+    cell: ({ row }) => {
+      return (
+        <div className="text-medium text-orange-600">
+          {row.getValue("arrival_name")}
+        </div>
+      );
+    },
   },
   {
     accessorKey: "date",
@@ -129,7 +141,11 @@ const columns: ColumnDef<TicketDetails>[] = [
   {
     accessorKey: "price",
     header: "Price",
-    cell: ({ row }) => <div>{row.getValue("price")}</div>,
+    cell: ({ row }) => (
+      <div className="text-medium text-emerald-600">{`${row.getValue(
+        "price"
+      )} XOF`}</div>
+    ),
   },
   {
     accessorKey: "seat_number",
@@ -139,7 +155,31 @@ const columns: ColumnDef<TicketDetails>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => <div>{row.getValue("status")}</div>,
+    cell: ({ row }) => {
+      if (row.getValue("status") === "available") {
+        return (
+          <div>
+            {" "}
+            <span
+              className={`rounded-full py-0.5 px-2 bg-green-200 text-green-700 font-medium`}
+            >
+              {row.getValue("status")}
+            </span>{" "}
+          </div>
+        );
+      } else if (row.getValue("status") === "booked") {
+        return (
+          <div>
+            {" "}
+            <span
+              className={`rounded-full py-0.5 px-2 bg-pink-200 text-pink-700 font-medium`}
+            >
+              {row.getValue("status")}
+            </span>{" "}
+          </div>
+        );
+      }
+    },
   },
   {
     id: "actions",
@@ -156,7 +196,9 @@ const columns: ColumnDef<TicketDetails>[] = [
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => console.log("Edit ticket", ticket)}>
+            <DropdownMenuItem
+              onClick={() => console.log("Edit ticket", ticket)}
+            >
               Edit
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -176,6 +218,18 @@ const columns: ColumnDef<TicketDetails>[] = [
 
 export function TicketTable() {
   const { toast } = useToast();
+  const [pageIndex, setPageIndex] = React.useState(1); // Track current page
+  const [pageSize, setPageSize] = React.useState(10); // Track page size
+  const [cachedPages, setCachedPages] = React.useState<{
+    [key: number]: TicketDetails[];
+  }>({});
+  // Fetch paginated tickets based on page and limit
+  const { data: tickets, error } = useSWR(
+    `tickets-page-${pageIndex}`, // Use a unique key for each page
+    () => getAllTickets({ page: pageIndex, limit: pageSize }),
+    { keepPreviousData: true } // Keeps the previous page’s data while loading the new page
+  );
+
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
@@ -186,43 +240,73 @@ export function TicketTable() {
   const [loading, setLoading] = React.useState<boolean>(true);
   const [data, setData] = React.useState<TicketDetails[]>([]);
 
-  const fetchData = async () => {
+  const fetchData = async (tickets: Ticket[], page: number) => {
     setLoading(true);
-    const tickets = await getAllTickets();
-    const ticketsWithDetails = await Promise.all(
-      tickets.map(async (ticket) => {
-        const travelDetails = await getTravelById(ticket.travel_id) as Travel;
-        const busDetails = (await getBusById(
-          (await getBusIdByTravelId(travelDetails.travel_id)) as string
-        )) as Bus;
-        const bus_plate = busDetails.plate_number;
-        const locations = await getRouteLocations(
-          (await getRouteIdByTravelId(travelDetails.travel_id)) as string
-        );
 
-        const price = travelDetails.price
-        const date = travelDetails.travel_date
-        // Extract departure and arrival locations from locations
-        const departureId = locations?.startLocationId;
-        const arrivalId = locations?.endLocationId;
+    // Check if data for this page is already cached
+    if (cachedPages[page]) {
+      setData(cachedPages[page]);
+      setLoading(false);
+      return;
+    }
+    // const tickets = await getAllTickets();
+    let ticketsWithDetails: TicketDetails[] = [];
 
-        const departure_name = (await getLocationNameById(
-          departureId as string
-        )) as string;
-        const arrival_name = (await getLocationNameById(
-          arrivalId as string
-        )) as string;
-        return { ...ticket, departure_name, arrival_name, price, bus_plate, date };
+    if (tickets) {
+      ticketsWithDetails = await Promise.all(
+        tickets.map(async (ticket) => {
+          const travelDetails = (await getTravelById(
+            ticket.travel_id
+          )) as Travel;
+          const busDetails = (await getBusById(
+            (await getBusIdByTravelId(travelDetails.travel_id)) as string
+          )) as Bus;
+          const bus_plate = busDetails.plate_number;
+          const locations = await getRouteLocations(
+            (await getRouteIdByTravelId(travelDetails.travel_id)) as string
+          );
 
-      })
-    );
+          const price = travelDetails.price;
+          const date = travelDetails.travel_date;
+          // Extract departure and arrival locations from locations
+          const departureId = locations?.startLocationId;
+          const arrivalId = locations?.endLocationId;
+
+          const departure_name = (await getLocationNameById(
+            departureId as string
+          )) as string;
+          const arrival_name = (await getLocationNameById(
+            arrivalId as string
+          )) as string;
+          return {
+            ...ticket,
+            departure_name,
+            arrival_name,
+            price,
+            bus_plate,
+            date,
+          };
+        })
+      );
+    }
+    setCachedPages((prevCache) => ({
+      ...prevCache,
+      [page]: ticketsWithDetails, // Cache this page's data
+    }));
+
     setData(ticketsWithDetails);
     setLoading(false);
   };
 
   React.useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(tickets as Ticket[], pageIndex);
+  }, [pageIndex]);
+
+  // Memoize processed ticket data
+  /* const memoizedTicketsWithDetails = React.useMemo(() => {
+  // Only re-process data when tickets change
+  fetchData(tickets as Ticket[]);
+}, [tickets]); */
 
   const table = useReactTable({
     data,
@@ -240,12 +324,23 @@ export function TicketTable() {
       columnFilters,
       columnVisibility,
       rowSelection,
+      pagination: {
+        pageIndex,
+        pageSize,
+      },
     },
+    manualPagination: true, // enable manual pagination
+    pageCount: data.length < pageSize ? pageIndex : undefined, // Set page count based on data length
   });
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
+  const handleNextPage = () => setPageIndex((prev) => prev + 1);
+  const handlePreviousPage = () =>
+    setPageIndex((prev) => Math.max(prev - 1, 1));
+
+  if (loading) return <div>Loading...</div>;
+
+  if (error) return <div>Error loading tickets.</div>;
+  if (!tickets) return <div>Loading...</div>;
 
   return (
     <div className="w-full">
@@ -268,7 +363,13 @@ export function TicketTable() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={fetchData}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    fetchData(tickets, pageIndex);
+                  }}
+                >
                   <RefreshCw />
                 </Button>
               </TooltipTrigger>
@@ -363,22 +464,21 @@ export function TicketTable() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            onClick={handlePreviousPage}
+            disabled={pageIndex === 1}
           >
             Previous
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            onClick={handleNextPage}
+            disabled={data.length < pageSize}
           >
             Next
           </Button>
         </div>
       </div>
     </div>
-      );
-    }
-    
+  );
+}

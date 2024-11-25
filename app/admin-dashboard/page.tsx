@@ -73,7 +73,7 @@ const Home = ({}: Props) => {
   );
   const { data: tickets, error: ticketsError } = useSWR(
     "tickets",
-    getAllTickets
+    () => getAllTickets()
   );
   const { data: locations, error: locationsError } = useSWR(
     "locations",
@@ -109,51 +109,51 @@ const Home = ({}: Props) => {
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-        <Card x-chunk="dashboard-01-chunk-0">
+        <Card x-chunk="dashboard-01-chunk-0" className=" hover:bg-indigo-50 transition-all duration-300 group">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Travels</CardTitle>
-            <Luggage className="h-6 w-6 text-muted-foreground" />
+            <CardTitle className="text-lg font-medium">Total Travels</CardTitle>
+            <Luggage className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalTravels}</div>
+            <div className="text-2xl font-bold text-indigo-700">{stats.totalTravels}</div>
             <p className="text-xs text-muted-foreground">
               {/* +20.1% from last month */}
             </p>
           </CardContent>
         </Card>
-        <Card x-chunk="dashboard-01-chunk-1">
+        <Card x-chunk="dashboard-01-chunk-1" className=" hover:bg-indigo-50 transition-all duration-300 group">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Buses</CardTitle>
-            <BusIcon className="h-6 w-6 text-muted-foreground" />
+            <CardTitle className="text-lg font-medium">Total Buses</CardTitle>
+            <BusIcon className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalBuses}</div>
+            <div className="text-2xl font-bold text-indigo-700">{stats.totalBuses}</div>
             <p className="text-xs text-muted-foreground">
               {/* +180.1% from last month */}
             </p>
           </CardContent>
         </Card>
-        <Card x-chunk="dashboard-01-chunk-2">
+        <Card x-chunk="dashboard-01-chunk-2" className=" hover:bg-indigo-50 transition-all duration-300 group">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Routes</CardTitle>
-            <RouteIcon className="h-6 w-6 text-muted-foreground" />
+            <CardTitle className="text-lg font-medium">Total Routes</CardTitle>
+            <RouteIcon className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalRoutes}</div>
+            <div className="text-2xl font-bold text-indigo-700">{stats.totalRoutes}</div>
             <p className="text-xs text-muted-foreground">
               {/* +19% from last month */}
             </p>
           </CardContent>
         </Card>
-        <Card x-chunk="dashboard-01-chunk-3">
+        <Card x-chunk="dashboard-01-chunk-3" className=" hover:bg-indigo-50 transition-all duration-300 group">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-lg font-medium">
               Total Bookings
             </CardTitle>
-            <TicketIcon className="h-6 w-6 text-muted-foreground" />
+            <TicketIcon className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalBookings}</div>
+            <div className="text-2xl font-bold text-indigo-700">{stats.totalBookings}</div>
             <p className="text-xs text-muted-foreground">
               {/* +201 since last hour */}
             </p>
