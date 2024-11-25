@@ -629,7 +629,34 @@ export async function getLatestTravels(amount: number): Promise<Travel[]> {
   }
 }
 
-export const getAllTickets = cache(async (): Promise<Ticket[]> => {
+interface GetAllTicketsOptions {
+  page?: number;
+  limit?: number;
+  filters?: Record<string, string | number>; // Key-value pairs for filtering
+  sorting?: { column: string; direction: "asc" | "desc" };
+}
+
+export async function getAllTickets(options: GetAllTicketsOptions = {}): Promise<Ticket[]> {
+  const { page = 1, limit = 10, filters = {}, sorting } = options;
+
+  try {
+    // Fetch tickets with pagination
+  const { data, error } = await supabase
+  .from("tickets")
+  .select("*")
+  .range((page - 1) * limit, page * limit - 1); // Adjust range based on page and limit
+
+
+    if (error) throw error;
+
+    return data as Ticket[];
+  } catch (error) {
+    console.error("Error fetching tickets:", error);
+    return [];
+  }
+}
+
+export const _getAllTickets = cache(async (): Promise<Ticket[]> => {
   try {
     const { data, error } = await supabase.from("tickets").select("*");
 
