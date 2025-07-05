@@ -4,9 +4,6 @@ import React, { useState, useEffect, useMemo, memo } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import {
-  Luggage,
-  RefreshCw,
-  Ticket as TicketIcon,
   Bus as BusIcon,
   Route as RouteIcon,
 } from "lucide-react";
@@ -41,16 +38,13 @@ import {
 } from "@/components/ui/table";
 import { Travel, Bus, Ticket, Booking, Location, Route } from "@/types";
 import {
-  getAllBookings,
   getAllBuses,
-  getAllLocations,
   getAllRoutes,
-  getAllTickets,
-  getAllTravels,
-  getLatestTravels,
+  getAllBookings,
 } from "@/utils/supabase/queries";
 import LatestTravelsTable from "@/components/latest-travels-table";
 import RecentBookings from "@/components/latest-bookings";
+import RevenueChart from "@/components/revenue-chart";
 
 /* const fetcher = (queryFunction: () => Promise<any>) =>
   queryFunction().catch((err) => {
@@ -61,183 +55,66 @@ import RecentBookings from "@/components/latest-bookings";
 type Props = {};
 
 const Home = ({}: Props) => {
-  const { data: travels, error: travelsError } = useSWR(
-    "travels",
-    getAllTravels
-  );
   const { data: buses, error: busesError } = useSWR("buses", getAllBuses);
   const { data: routes, error: routesError } = useSWR("routes", getAllRoutes);
-  const { data: bookings, error: bookingsError } = useSWR(
-    "bookings",
-    getAllBookings
-  );
-  const { data: tickets, error: ticketsError } = useSWR(
-    "tickets",
-    () => getAllTickets()
-  );
-  const { data: locations, error: locationsError } = useSWR(
-    "locations",
-    getAllLocations
-  );
+  const { data: bookings, error: bookingsError } = useSWR("bookings", getAllBookings);
 
-  if (!travels || !buses || !routes || !bookings || !tickets || !locations)
-    return <div>Loading...</div>;
+  if (!buses || !routes || !bookings) return <div>Loading...</div>;
 
-  if (
-    travelsError ||
-    busesError ||
-    routesError ||
-    bookingsError ||
-    ticketsError ||
-    locationsError
-  )
-    return <div>Error loading data</div>;
+  if (busesError || routesError || bookingsError) return <div>Error loading data</div>;
 
-  const getStats = () => {
-    return {
-      totalTravels: travels.length,
-      totalBuses: buses.length,
-      totalRoutes: routes.length,
-      // totalTickets: tickets.length,
-      totalBookings: bookings.length,
-    };
+  const stats = {
+    totalBuses: buses.length,
+    totalRoutes: routes.length,
   };
 
-  // const stats = useMemo(() => getStats(), [travels, buses, routes, bookings]);
-  const stats = getStats();
-
   return (
-    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-        <Card x-chunk="dashboard-01-chunk-0" className=" hover:bg-indigo-50 transition-all duration-300 group">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">Total Travels</CardTitle>
-            <Luggage className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-indigo-700">{stats.totalTravels}</div>
-            <p className="text-xs text-muted-foreground">
-              {/* +20.1% from last month */}
-            </p>
-          </CardContent>
-        </Card>
-        <Card x-chunk="dashboard-01-chunk-1" className=" hover:bg-indigo-50 transition-all duration-300 group">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">Total Buses</CardTitle>
-            <BusIcon className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-indigo-700">{stats.totalBuses}</div>
-            <p className="text-xs text-muted-foreground">
-              {/* +180.1% from last month */}
-            </p>
-          </CardContent>
-        </Card>
-        <Card x-chunk="dashboard-01-chunk-2" className=" hover:bg-indigo-50 transition-all duration-300 group">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">Total Routes</CardTitle>
-            <RouteIcon className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-indigo-700">{stats.totalRoutes}</div>
-            <p className="text-xs text-muted-foreground">
-              {/* +19% from last month */}
-            </p>
-          </CardContent>
-        </Card>
-        <Card x-chunk="dashboard-01-chunk-3" className=" hover:bg-indigo-50 transition-all duration-300 group">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">
-              Total Bookings
-            </CardTitle>
-            <TicketIcon className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-indigo-700">{stats.totalBookings}</div>
-            <p className="text-xs text-muted-foreground">
-              {/* +201 since last hour */}
-            </p>
-          </CardContent>
-        </Card>
+    <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
+      {/* Main Content Area - Two Column Layout */}
+      <div className="grid gap-6 lg:grid-cols-5 xl:grid-cols-8">
+        {/* Left Column - Stats and Latest Travels */}
+        <div className="lg:col-span-3 xl:col-span-5 space-y-6">
+          {/* Stats Cards - Buses and Routes */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="hover:bg-indigo-50 transition-all duration-300 group">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-medium">Total Buses</CardTitle>
+                <BusIcon className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-indigo-700">{stats.totalBuses}</div>
+                <p className="text-xs text-muted-foreground">
+                  Available buses
+                </p>
+              </CardContent>
+            </Card>
+            
+            <Card className="hover:bg-indigo-50 transition-all duration-300 group">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-lg font-medium">Total Routes</CardTitle>
+                <RouteIcon className="h-6 w-6 text-muted-foreground group-hover:text-indigo-800 transition-all duration-300" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-indigo-700">{stats.totalRoutes}</div>
+                <p className="text-xs text-muted-foreground">
+                  Active routes
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Latest Travels Table */}
+          <LatestTravelsTable />
+        </div>
+
+        {/* Right Column - Recent Bookings */}
+        <div className="lg:col-span-2 xl:col-span-3">
+          <RecentBookings />
+        </div>
       </div>
-      <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-        <LatestTravelsTable />
-        <RecentBookings />
-        {/* <Card x-chunk="dashboard-01-chunk-5">
-          <CardHeader>
-            <CardTitle>Recent Sales</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-8">
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/01.png" alt="Avatar" />
-                <AvatarFallback>OM</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
-                  Olivia Martin
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  olivia.martin@email.com
-                </p>
-              </div>
-              <div className="ml-auto font-medium">+$1,999.00</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/02.png" alt="Avatar" />
-                <AvatarFallback>JL</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Jackson Lee</p>
-                <p className="text-sm text-muted-foreground">
-                  jackson.lee@email.com
-                </p>
-              </div>
-              <div className="ml-auto font-medium">+$39.00</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/03.png" alt="Avatar" />
-                <AvatarFallback>IN</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
-                  Isabella Nguyen
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  isabella.nguyen@email.com
-                </p>
-              </div>
-              <div className="ml-auto font-medium">+$299.00</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/04.png" alt="Avatar" />
-                <AvatarFallback>WK</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">William Kim</p>
-                <p className="text-sm text-muted-foreground">will@email.com</p>
-              </div>
-              <div className="ml-auto font-medium">+$99.00</div>
-            </div>
-            <div className="flex items-center gap-4">
-              <Avatar className="hidden h-9 w-9 sm:flex">
-                <AvatarImage src="/avatars/05.png" alt="Avatar" />
-                <AvatarFallback>SD</AvatarFallback>
-              </Avatar>
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">Sofia Davis</p>
-                <p className="text-sm text-muted-foreground">
-                  sofia.davis@email.com
-                </p>
-              </div>
-              <div className="ml-auto font-medium">+$39.00</div>
-            </div>
-          </CardContent>
-        </Card> */}
-      </div>
+
+      {/* Revenue Chart */}
+      <RevenueChart bookings={bookings} />
     </main>
   );
 };
