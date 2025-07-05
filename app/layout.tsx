@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ReactQueryClientProvider from "@/components/react-query/client-provider"
+import CacheProvider from "@/components/react-query/cache-provider"
 import { Inter as FontSans } from "next/font/google";
 import "../styles/globals.css";
 
@@ -24,18 +25,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    /* <ReactQueryClientProvider> */
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={cn(
-            "min-h-screen bg-background font-sans antialiased",
-            fontSans.variable
-          )}
-        >
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={cn(
+          "min-h-screen bg-background font-sans antialiased",
+          fontSans.variable
+        )}
+      >
+        <CacheProvider>
           {children}
           <Toaster />
-        </body>
-      </html>
-    /* </ReactQueryClientProvider> */
+        </CacheProvider>
+      </body>
+    </html>
   );
 }
