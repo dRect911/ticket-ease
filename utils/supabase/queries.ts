@@ -758,6 +758,24 @@ export async function getBookingById(
   }
 }
 
+export async function getBookingsByTicketId(
+  ticketId: string
+): Promise<Booking[]> {
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("ticket_id", ticketId);
+
+    if (error) throw error;
+
+    return data as Booking[];
+  } catch (error) {
+    console.error("Error fetching bookings by ticket ID:", error);
+    return [];
+  }
+}
+
 /* UPDATE ACTIONS */
 
 /**
