@@ -112,7 +112,7 @@ const columns: ColumnDef<BookingDetails>[] = [
       return (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || ""} alt="Avatar" />
+            <AvatarImage src="" alt="Avatar" />
             <AvatarFallback>
               {`${profile?.first_name?.[0] || ""}${profile?.last_name?.[0] || ""}`}
             </AvatarFallback>
@@ -301,21 +301,13 @@ const columns: ColumnDef<BookingDetails>[] = [
                 try {
                   const deleted = await deleteBooking(booking.booking_id);
                   if (deleted) {
-                    toast({
-                      title: "Success",
-                      description: "Booking deleted successfully",
-                    });
                     // Invalidate cache after successful deletion
                     cacheUtils.invalidateBookings();
-                    fetchData();
+                    // Refresh data
+                    window.location.reload();
                   }
                 } catch (error) {
                   console.error("Error deleting booking:", error);
-                  toast({
-                    title: "Error",
-                    description: "Failed to delete booking",
-                    variant: "destructive",
-                  });
                 }
               }}
               className="text-red-600"
@@ -343,10 +335,10 @@ export default function BookingTable() {
 
   // Use cached data
   const { data: bookings } = useBookings();
-  const { profiles, travels, tickets, buses, locations, routes, isLoading: isDataLoading } = useBookingDetails(bookings || []);
+  const { profiles, travels, tickets, buses, locations, routes } = useBookingDetails(bookings || []);
 
   const fetchData = async () => {
-    if (!bookings || isDataLoading || !profiles || !travels || !tickets || !buses || !locations || !routes) {
+    if (!bookings || !profiles || !travels || !tickets || !buses || !locations || !routes) {
       return;
     }
 
@@ -390,7 +382,7 @@ export default function BookingTable() {
             bus_plate,
             departure_name,
             arrival_name,
-            travel_date: travel.travel_date,
+            travel_date: travel.travel_date.toISOString(),
             seat_number: ticket.seat_number,
             price: travel.price,
           };
@@ -411,7 +403,7 @@ export default function BookingTable() {
 
   React.useEffect(() => {
     fetchData();
-  }, [bookings, profiles, travels, tickets, buses, locations, routes, isDataLoading]);
+  }, [bookings, profiles, travels, tickets, buses, locations, routes]);
 
   const table = useReactTable({
     data,
