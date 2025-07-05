@@ -324,24 +324,41 @@ const columns: ColumnDef<BookingDetails>[] = [
 export default function BookingTable() {
   const { toast } = useToast();
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [loading, setLoading] = React.useState<boolean>(true);
   const [data, setData] = React.useState<BookingDetails[]>([]);
+  const [criticalError, setCriticalError] = React.useState<string | null>(null);
 
   // Use cached data
   const { data: bookings } = useBookings();
   const { profiles, travels, tickets, buses, locations, routes } = useBookingDetails(bookings || []);
 
+  // Enhanced error logging for SWR hooks
+  React.useEffect(() => {
+    if (!bookings) console.error("[BookingTable] bookings missing or failed to load");
+    if (!profiles) console.error("[BookingTable] profiles missing or failed to load");
+    if (!travels) console.error("[BookingTable] travels missing or failed to load");
+    if (!tickets) console.error("[BookingTable] tickets missing or failed to load");
+    if (!buses) console.error("[BookingTable] buses missing or failed to load");
+    if (!locations) console.error("[BookingTable] locations missing or failed to load");
+    if (!routes) console.error("[BookingTable] routes missing or failed to load");
+  }, [bookings, profiles, travels, tickets, buses, locations, routes]);
+
   const fetchData = async () => {
+    // If any required data is missing, show error and do not proceed
     if (!bookings || !profiles || !travels || !tickets || !buses || !locations || !routes) {
+      setCriticalError("Failed to load one or more required datasets (bookings, profiles, travels, tickets, buses, locations, routes). Check network/cache.");
+      setLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to load booking details (missing required data)",
+        variant: "destructive",
+      });
       return;
     }
-
+    setCriticalError(null);
     setLoading(true);
     try {
       const bookingsWithDetails = await Promise.all(
@@ -382,7 +399,7 @@ export default function BookingTable() {
             bus_plate,
             departure_name,
             arrival_name,
-            travel_date: travel.travel_date.toISOString(),
+            travel_date: String(travel.travel_date),
             seat_number: ticket.seat_number,
             price: travel.price,
           };
@@ -391,6 +408,7 @@ export default function BookingTable() {
       setData(bookingsWithDetails);
     } catch (error) {
       console.error("Error fetching booking details:", error);
+      setCriticalError("Failed to process booking details. See console for details.");
       toast({
         title: "Error",
         description: "Failed to load booking details",
@@ -430,6 +448,17 @@ export default function BookingTable() {
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
           <p className="text-muted-foreground">Loading bookings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (criticalError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="text-red-600 text-lg font-semibold mb-2">{criticalError}</div>
+          <div className="text-muted-foreground">Please try refreshing the page or check your network/cache.</div>
         </div>
       </div>
     );
