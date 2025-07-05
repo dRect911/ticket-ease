@@ -342,9 +342,9 @@ export default function TravelDetailsModal({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {travelInfo?.bookings.length > 0 ? (
+              {(travelInfo?.bookings && travelInfo.bookings.length > 0) ? (
                 <div className="space-y-3">
-                  {travelInfo.bookings
+                  {(travelInfo?.bookings || [])
                     .slice(0, 5) // Show only first 5
                     .map((booking, index) => (
                       <div key={booking.booking_id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -357,7 +357,7 @@ export default function TravelDetailsModal({
                           <div>
                             <div className="font-semibold">Booking #{booking.booking_id.slice(0, 8)}...</div>
                             <div className="text-sm text-muted-foreground">
-                              {new Date(booking.booking_date).toLocaleDateString()}
+                              {booking.booking_date ? new Date(booking.booking_date).toLocaleDateString() : 'N/A'}
                             </div>
                           </div>
                         </div>
