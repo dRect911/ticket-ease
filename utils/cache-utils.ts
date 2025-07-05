@@ -51,13 +51,13 @@ export const cacheUtils = {
 
   // Invalidate all cache
   invalidateAll: () => {
-    mutate(() => true, undefined, { revalidate: true });
+    mutate(() => true, undefined, { revalidate: true } as any);
   },
 
   // Optimistic update for bookings
   optimisticUpdateBooking: (bookingId: string, newData: any) => {
     // Update the cache immediately with new data
-    mutate(cacheKeys.bookings, (currentBookings: any[]) => {
+    mutate(cacheKeys.bookings, (currentBookings: any[] | undefined) => {
       if (!currentBookings) return currentBookings;
       return currentBookings.map(booking => 
         booking.booking_id === bookingId ? { ...booking, ...newData } : booking
@@ -67,7 +67,7 @@ export const cacheUtils = {
 
   // Optimistic update for travels
   optimisticUpdateTravel: (travelId: string, newData: any) => {
-    mutate(cacheKeys.travels, (currentTravels: any[]) => {
+    mutate(cacheKeys.travels, (currentTravels: any[] | undefined) => {
       if (!currentTravels) return currentTravels;
       return currentTravels.map(travel => 
         travel.travel_id === travelId ? { ...travel, ...newData } : travel
@@ -124,11 +124,11 @@ export const cacheMonitoring = {
 
   // Clear specific cache
   clearCache: (key: string) => {
-    mutate(key, undefined, { revalidate: false });
+    mutate(key, undefined, { revalidate: false } as any);
   },
 
   // Clear all cache
   clearAllCache: () => {
-    mutate(() => true, undefined, { revalidate: false });
+    mutate(() => true, undefined, { revalidate: false } as any);
   },
 }; 
