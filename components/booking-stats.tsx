@@ -111,7 +111,7 @@ export default function BookingStats({ bookings }: BookingStatsProps) {
               bus_plate,
               departure_name,
               arrival_name,
-              travel_date: travel.travel_date.toISOString(),
+              travel_date: String(travel.travel_date),
               seat_number: ticket.seat_number,
               price: travel.price,
             };
