@@ -62,6 +62,9 @@ import {
 import RouteForm from "@/components/route-form";
 import { useToast } from "./ui/use-toast";
 import TravelForm from "./travel-form";
+import EditTravelForm from "./edit-travel-form";
+import DeleteTravelModal from "./delete-travel-modal";
+import TravelDetailsModal from "./travel-details-modal";
 import useSWR from "swr";
 
 interface TravelDetails extends Travel {
@@ -71,144 +74,19 @@ interface TravelDetails extends Travel {
   arrival_name: string;
 }
 
-const columns: ColumnDef<TravelDetails>[] = [
-  {
-    id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "travel_date",
-    header: "Date",
-    cell: ({ row }) => {
-      const travel = row.original;
-      return (
-        <div>
-          {new Date(travel.travel_date).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          })}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "departure_name",
-    header: "Start Location",
-    cell: ({ row }) => {
-      return (
-        <div className="text-medium text-sky-600">
-          {row.getValue("departure_name")}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "arrival_name",
-    header: "End Location",
-    cell: ({ row }) => {
-      return (
-        <div className="text-medium text-orange-600">
-          {row.getValue("arrival_name")}
-        </div>
-      );
-    },
-  },
-  {
-    accessorKey: "bus_plate",
-    header: "Bus",
-    cell: ({ row }) => <div>{row.getValue("bus_plate")}</div>,
-  },
-
-  {
-    accessorKey: "places_amount",
-    header: "No places",
-    cell: ({ row }) => <div>{row.getValue("places_amount")}</div>,
-  },
-  {
-    accessorKey: "price",
-    header: "Price",
-    cell: ({ row }) => (
-      <div className="text-medium text-green-600">{`${row.getValue(
-        "price"
-      )} XOF`}</div>
-    ),
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const route = row.original;
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={() => console.log("Edit route", route)} // Replace with your edit action
-            >
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={async () => {
-                const deleted = await deleteRoute(route.route_id);
-                /* if (deleted) {
-                  toast({
-                    title: "Route deleted successfully",
-                    description: "You have successfully deleted the route.",
-                  });
-                  fetchData(); // Re-fetch data after deletion
-                } else {
-                  toast({
-                    title: "Error deleting route",
-                    description: "Failed to delete the route.",
-                  });
-                } */
-              }} // Replace with your delete action
-            >
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
-  },
-];
-
 export default function TravelTable() {
   const { toast } = useToast();
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
-  );
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   const [loading, setLoading] = React.useState<boolean>(true);
   const [data, setData] = React.useState<TravelDetails[]>([]);
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const [selectedTravel, setSelectedTravel] = React.useState<TravelDetails | null>(null);
+  const [detailsModalOpen, setDetailsModalOpen] = React.useState(false);
+  const [selectedTravelForDetails, setSelectedTravelForDetails] = React.useState<{travel: Travel, details: any} | null>(null);
+
   const fetchData = async () => {
     setLoading(true);
     const travels = await getAllTravels();
@@ -250,6 +128,141 @@ export default function TravelTable() {
   React.useEffect(() => {
     fetchData();
   }, []);
+
+  const columns: ColumnDef<TravelDetails>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "travel_date",
+      header: "Date",
+      cell: ({ row }) => {
+        const travel = row.original;
+        return (
+          <div>
+            {new Date(travel.travel_date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "departure_name",
+      header: "Start Location",
+      cell: ({ row }) => {
+        return (
+          <div className="text-medium text-sky-600">
+            {row.getValue("departure_name")}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "arrival_name",
+      header: "End Location",
+      cell: ({ row }) => {
+        return (
+          <div className="text-medium text-orange-600">
+            {row.getValue("arrival_name")}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "bus_plate",
+      header: "Bus",
+      cell: ({ row }) => <div>{row.getValue("bus_plate")}</div>,
+    },
+    {
+      accessorKey: "places_amount",
+      header: "No places",
+      cell: ({ row }) => <div>{row.getValue("places_amount")}</div>,
+    },
+    {
+      accessorKey: "price",
+      header: "Price",
+      cell: ({ row }) => (
+        <div className="text-medium text-green-600">{`${row.getValue(
+          "price"
+        )} XOF`}</div>
+      ),
+    },
+    {
+      id: "actions",
+      enableHiding: false,
+      cell: ({ row }) => {
+        const travel = row.original;
+        return (
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedTravelForDetails({
+                      travel: travel,
+                      details: {
+                        bus_plate: travel.bus_plate,
+                        departure_name: travel.departure_name,
+                        arrival_name: travel.arrival_name,
+                        places_amount: travel.places_amount,
+                      }
+                    });
+                    setDetailsModalOpen(true);
+                  }}
+                >
+                  View Details
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <EditTravelForm
+                    travelId={travel.travel_id}
+                    onSuccess={fetchData}
+                  />
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    setSelectedTravel(travel);
+                    setDeleteModalOpen(true);
+                  }}
+                  className="text-red-600"
+                >
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        );
+      },
+    },
+  ];
 
   const table = useReactTable({
     data,
@@ -405,6 +418,33 @@ export default function TravelTable() {
           </Button>
         </div>
       </div>
+      <DeleteTravelModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        travelId={selectedTravel?.travel_id || ""}
+        travelDetails={{
+          departure_name: selectedTravel?.departure_name || "",
+          arrival_name: selectedTravel?.arrival_name || "",
+          travel_date: selectedTravel?.travel_date ? String(selectedTravel.travel_date) : "",
+          bus_plate: selectedTravel?.bus_plate || "",
+        }}
+        onSuccess={() => {
+          setDeleteModalOpen(false);
+          fetchData();
+        }}
+      />
+      
+      <TravelDetailsModal
+        isOpen={detailsModalOpen}
+        onClose={() => setDetailsModalOpen(false)}
+        travel={selectedTravelForDetails?.travel || {} as Travel}
+        travelDetails={selectedTravelForDetails?.details || {
+          bus_plate: "",
+          departure_name: "",
+          arrival_name: "",
+          places_amount: 0,
+        }}
+      />
     </div>
   );
 }
