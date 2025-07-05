@@ -261,7 +261,7 @@ export default function TravelDetailsModal({
                 {travelInfo?.driver ? (
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={travelInfo.driver.avatar_url || ""} />
+                      <AvatarImage src="" />
                       <AvatarFallback>
                         {`${travelInfo.driver.first_name?.[0] || ""}${travelInfo.driver.last_name?.[0] || ""}`}
                       </AvatarFallback>
