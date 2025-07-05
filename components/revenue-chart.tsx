@@ -60,7 +60,7 @@ export default function RevenueChart({ bookings }: RevenueChartProps) {
             return {
               ...booking,
               price: travel?.price || 0,
-              booking_date: booking.booking_date || new Date().toISOString(),
+              booking_date: booking.booking_date ? new Date(booking.booking_date).toISOString() : new Date().toISOString(),
             };
           })
         );
