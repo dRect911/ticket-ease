@@ -13,7 +13,7 @@ import {
 } from "@/utils/supabase/queries";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
-interface BookingDetails extends Booking {
+interface BookingDetails extends Omit<Booking, 'booking_date'> {
   price: number;
   booking_date: string;
 }
