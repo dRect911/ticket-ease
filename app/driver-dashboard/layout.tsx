@@ -175,29 +175,9 @@ export default function DriverDashboardLayout({
           </div>
         </div>
       </header>
-      <div className="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10">
-        <aside className="fixed top-14 z-30 -ml-2 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 overflow-y-auto border-r md:sticky md:block">
-          <div className="py-6 pr-2 lg:py-8">
-            <nav className="grid items-start px-4 text-sm font-medium">
-              {navlinks.map((link, index) => (
-                <Link
-                  key={index}
-                  href={`/driver-dashboard/${link.href}`}
-                  className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground ${
-                    pathname === `/driver-dashboard/${link.href}` ? "bg-accent" : "transparent"
-                  }`}
-                >
-                  {link.icon}
-                  <span className="ml-2">{link.title}</span>
-                </Link>
-              ))}
-            </nav>
-          </div>
-        </aside>
-        <main className="flex w-full flex-col overflow-hidden">
-          {children}
-        </main>
-      </div>
+      <main className="flex w-full flex-col overflow-hidden">
+        {children}
+      </main>
     </div>
   );
 }
