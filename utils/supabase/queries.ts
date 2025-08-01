@@ -503,6 +503,23 @@ export async function getBusById(busId: string): Promise<Bus | null> {
   }
 }
 
+export async function getBusByDriverId(driverId: string): Promise<Bus | null> {
+  try {
+    const { data, error } = await supabase
+      .from("buses")
+      .select("*")
+      .eq("driver_id", driverId)
+      .single();
+
+    if (error) throw error;
+
+    return (data as Bus) || null;
+  } catch (error) {
+    console.error("Error fetching bus by driver ID:", error);
+    return null;
+  }
+}
+
 export async function getPlateNumbers(): Promise<string[]> {
   const { data, error } = await supabase.from("buses").select("plate_number"); // Get all plate numbers from the buses table
 
@@ -625,6 +642,39 @@ export async function getLatestTravels(amount: number): Promise<Travel[]> {
     }
   } else {
     console.log("Invalid amount. Please provide a positive integer.");
+    return [];
+  }
+}
+
+export async function getTravelsByDriverId(driverId: string): Promise<Travel[]> {
+  try {
+    // First get all buses assigned to this driver
+    const { data: buses, error: busesError } = await supabase
+      .from("buses")
+      .select("bus_id")
+      .eq("driver_id", driverId);
+
+    if (busesError) throw busesError;
+
+    if (!buses || buses.length === 0) {
+      return [];
+    }
+
+    // Get all bus IDs for this driver
+    const busIds = buses.map(bus => bus.bus_id);
+
+    // Get all travels for these buses
+    const { data: travels, error: travelsError } = await supabase
+      .from("travels")
+      .select("*")
+      .in("bus_id", busIds)
+      .order("travel_date", { ascending: true });
+
+    if (travelsError) throw travelsError;
+
+    return (travels as Travel[]) || [];
+  } catch (error) {
+    console.error("Error fetching travels by driver ID:", error);
     return [];
   }
 }
