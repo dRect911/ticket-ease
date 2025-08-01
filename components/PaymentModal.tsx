@@ -22,6 +22,8 @@ import {
   Bus,
   DollarSign
 } from "lucide-react";
+import { createTicket, createBooking, getUser } from "@/utils/supabase/queries";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Travel {
   travel_id: string;
@@ -61,6 +63,8 @@ export default function PaymentModal({
   });
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [createdBookingId, setCreatedBookingId] = useState<string>("");
+  const { toast } = useToast();
 
   const handleInputChange = (field: keyof PaymentForm, value: string) => {
     setPaymentForm(prev => ({ ...prev, [field]: value }));
@@ -93,24 +97,78 @@ export default function PaymentModal({
     e.preventDefault();
     setIsProcessing(true);
 
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-    setIsProcessing(false);
-    setIsSuccess(true);
+      // Get current user
+      const user = await getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
 
-    // Auto close after showing success
-    setTimeout(() => {
-      onPaymentSuccess();
-      onClose();
-      setIsSuccess(false);
-      setPaymentForm({
-        cardNumber: "",
-        cardHolder: "",
-        expiryDate: "",
-        cvv: "",
+      // Create ticket first
+      const ticketData = {
+        ticket_id: crypto.randomUUID(),
+        travel_id: travel.travel_id,
+        seat_number: seatNumber,
+        status: "booked" as const,
+      };
+
+      const ticket = await createTicket(ticketData);
+      if (!ticket) {
+        throw new Error("Failed to create ticket");
+      }
+
+      // Create booking
+      const bookingData = {
+        booking_id: crypto.randomUUID(),
+        user_id: user.id,
+        ticket_id: ticket.ticket_id,
+        booking_date: new Date(),
+      };
+
+      const booking = await createBooking(bookingData);
+      if (!booking) {
+        throw new Error("Failed to create booking");
+      }
+
+      // Handle both return types (true or Booking object)
+      const bookingId = typeof booking === 'object' ? booking.booking_id : bookingData.booking_id;
+
+      setIsProcessing(false);
+      setIsSuccess(true);
+      setCreatedBookingId(bookingId);
+
+      // Show success toast
+      toast({
+        title: "Booking Confirmed! 🎉",
+        description: `Your seat ${seatNumber} has been successfully booked. Booking ID: ${bookingId}`,
       });
-    }, 3000);
+
+      // Auto close after showing success
+      setTimeout(() => {
+        onPaymentSuccess();
+        onClose();
+        setIsSuccess(false);
+        setPaymentForm({
+          cardNumber: "",
+          cardHolder: "",
+          expiryDate: "",
+          cvv: "",
+        });
+      }, 3000);
+
+    } catch (error) {
+      console.error("Error creating booking:", error);
+      setIsProcessing(false);
+      
+      toast({
+        title: "Booking Failed",
+        description: error instanceof Error ? error.message : "Failed to create booking. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const isFormValid = () => {
@@ -274,7 +332,7 @@ export default function PaymentModal({
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Booking ID:</span>
                 <span className="font-mono text-sm font-medium">
-                  {Math.random().toString(36).substr(2, 9).toUpperCase()}
+                  {createdBookingId}
                 </span>
               </div>
             </div>
