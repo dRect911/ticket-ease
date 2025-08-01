@@ -22,7 +22,7 @@ import {
   Bus,
   DollarSign
 } from "lucide-react";
-import { createTicket, createBooking, getUser } from "@/utils/supabase/queries";
+import { createTicket, createBooking, getUser, getTicketsByTravelId, updateTicket } from "@/utils/supabase/queries";
 import { useToast } from "@/components/ui/use-toast";
 
 interface Travel {
@@ -107,24 +107,33 @@ export default function PaymentModal({
         throw new Error("User not authenticated");
       }
 
-      // Create ticket first
-      const ticketData = {
-        ticket_id: crypto.randomUUID(),
-        travel_id: travel.travel_id,
-        seat_number: seatNumber,
-        status: "booked" as const,
-      };
+      // Get existing ticket for the selected seat
+      const existingTickets = await getTicketsByTravelId(travel.travel_id);
+      if (!existingTickets) {
+        throw new Error("Failed to fetch tickets for this travel");
+      }
 
-      const ticket = await createTicket(ticketData);
-      if (!ticket) {
-        throw new Error("Failed to create ticket");
+      // Find the ticket for the selected seat
+      const ticketForSeat = existingTickets.find(ticket => ticket.seat_number === seatNumber);
+      if (!ticketForSeat) {
+        throw new Error(`No ticket found for seat ${seatNumber}`);
+      }
+
+      // Update the ticket status to "booked"
+      const updatedTicket = await updateTicket({
+        ...ticketForSeat,
+        status: "booked" as const,
+      });
+
+      if (!updatedTicket) {
+        throw new Error("Failed to update ticket status");
       }
 
       // Create booking
       const bookingData = {
         booking_id: crypto.randomUUID(),
         user_id: user.id,
-        ticket_id: ticket.ticket_id,
+        ticket_id: updatedTicket.ticket_id,
         booking_date: new Date(),
       };
 
