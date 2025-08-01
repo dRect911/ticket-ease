@@ -4,8 +4,6 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
 
-
-
 const withAuth = (WrappedComponent: any) => {
   const supabase = createClient()
   return (props: any) => {
