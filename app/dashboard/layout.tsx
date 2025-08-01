@@ -81,7 +81,7 @@ export default function AdminDashboardLayout({
       icon: <CircleUser className="h-6 w-6" />,
     },
     {
-      title: 'Bookings',
+      title: 'Book a travel',
       href: 'bookings',
       icon: <CircleUser className="h-6 w-6" />,
     },
@@ -91,8 +91,8 @@ export default function AdminDashboardLayout({
       icon: <CircleUser className="h-6 w-6" />,
     }, */
     {
-      title: 'Travels',
-      href: 'travels',
+      title: 'My bookings',
+      href: 'my-bookings',
       icon: <CircleUser className="h-6 w-6" />,
     },
     /* {
@@ -133,7 +133,7 @@ export default function AdminDashboardLayout({
               <Link
                 key={link.href}
                 href={`/dashboard/${link.href}`}
-                className={`flex items-center ${
+                className={`flex items-center shrink-0 ${
                   pathname === `/dashboard/${link.href}`? "text-foreground" : "text-muted-foreground"
                 } hover:text-foreground`}
               >
