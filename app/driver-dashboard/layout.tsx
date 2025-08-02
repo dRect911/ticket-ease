@@ -92,7 +92,7 @@ export default function DriverDashboardLayout({
       icon: <Calendar className="h-6 w-6" />,
     },
     {
-      title: 'My travels',
+      title: 'Upcoming travels',
       href: 'travels',
       icon: <MapPin className="h-6 w-6" />,
     },
