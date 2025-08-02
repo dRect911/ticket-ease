@@ -1,9 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRoleProtection } from "@/hooks/useRoleProtection";
 import { supabase } from "@/utils/supabase/client";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { getUser, getProfileById } from "@/utils/supabase/queries";
+import { Profile } from "@/types";
 import {
   Activity,
   ArrowUpRight,
@@ -43,6 +46,26 @@ export default function DriverDashboardLayout({
   const router = useRouter();
   const isAuthorized = useRoleProtection("driver");
   const pathname = usePathname();
+  const [userProfile, setUserProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const user = await getUser();
+        if (user) {
+          const profile = await getProfileById(user.id);
+          setUserProfile(profile);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -85,8 +108,8 @@ export default function DriverDashboardLayout({
       icon: <Calendar className="h-6 w-6" />,
     },
     {
-      title: 'My Routes',
-      href: 'routes',
+      title: 'My travels',
+      href: 'travels',
       icon: <MapPin className="h-6 w-6" />,
     },
   ];
@@ -160,9 +183,11 @@ export default function DriverDashboardLayout({
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">Driver</p>
+                    <p className="text-sm font-medium leading-none">
+                      {loading ? "Loading..." : userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : "Driver"}
+                    </p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      driver@example.com
+                      {loading ? "Loading..." : userProfile?.email || "No email"}
                     </p>
                   </div>
                 </DropdownMenuLabel>
