@@ -5,6 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   Bus, 
   Calendar, 
@@ -27,7 +34,8 @@ import {
   getRouteIdByTravelId,
   getRouteLocations,
   getLocationNameById,
-  getTicketsByTravelId
+  getTicketsByTravelId,
+  getBookingsByTicketId
 } from "@/utils/supabase/queries";
 import { Profile, Bus as BusType, Travel } from "@/types";
 
@@ -38,11 +46,23 @@ interface TravelWithDetails extends Travel {
   total_seats: number;
 }
 
+interface PassengerDetails {
+  booking_id: string;
+  user_name: string;
+  user_email: string;
+  seat_number: number;
+  booking_date: string;
+}
+
 export default function DriverDashboard() {
   const [driverProfile, setDriverProfile] = useState<Profile | null>(null);
   const [assignedBus, setAssignedBus] = useState<BusType | null>(null);
   const [driverTravels, setDriverTravels] = useState<TravelWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTravel, setSelectedTravel] = useState<TravelWithDetails | null>(null);
+  const [isTravelDetailsModalOpen, setIsTravelDetailsModalOpen] = useState(false);
+  const [passengerDetails, setPassengerDetails] = useState<PassengerDetails[]>([]);
+  const [loadingPassengers, setLoadingPassengers] = useState(false);
 
   useEffect(() => {
     const fetchDriverData = async () => {
@@ -148,6 +168,50 @@ export default function DriverDashboard() {
     const diffDays = diffTime / (1000 * 60 * 60 * 24);
     return diffDays >= 0 && diffDays < 1;
   });
+
+  const fetchPassengerDetails = async (travel: TravelWithDetails) => {
+    setLoadingPassengers(true);
+    try {
+      // Get all tickets for this travel
+      const tickets = await getTicketsByTravelId(travel.travel_id);
+      if (!tickets) {
+        setPassengerDetails([]);
+        return;
+      }
+
+      // Get bookings for booked tickets
+      const bookedTickets = tickets.filter(ticket => ticket.status === "booked");
+      const passengerDetailsPromises = bookedTickets.map(async (ticket) => {
+        const bookings = await getBookingsByTicketId(ticket.ticket_id);
+        if (bookings.length > 0) {
+          const booking = bookings[0];
+          const userProfile = await getProfileById(booking.user_id);
+          return {
+            booking_id: booking.booking_id,
+            user_name: userProfile ? `${userProfile.first_name} ${userProfile.last_name}` : "Unknown",
+            user_email: userProfile?.email || "Unknown",
+            seat_number: ticket.seat_number,
+            booking_date: booking.booking_date ? new Date(booking.booking_date).toLocaleDateString() : "Unknown",
+          };
+        }
+        return null;
+      });
+
+      const passengers = await Promise.all(passengerDetailsPromises);
+      setPassengerDetails(passengers.filter(p => p !== null) as PassengerDetails[]);
+    } catch (error) {
+      console.error("Error fetching passenger details:", error);
+      setPassengerDetails([]);
+    } finally {
+      setLoadingPassengers(false);
+    }
+  };
+
+  const handleTravelClick = (travel: TravelWithDetails) => {
+    setSelectedTravel(travel);
+    setIsTravelDetailsModalOpen(true);
+    fetchPassengerDetails(travel);
+  };
 
   if (loading) {
     return (
@@ -300,7 +364,8 @@ export default function DriverDashboard() {
                 return (
                   <div
                     key={travel.travel_id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-orange-200 bg-orange-50"
+                    className="flex items-center justify-between p-4 rounded-lg border border-orange-200 bg-orange-50 cursor-pointer hover:bg-orange-100 transition-all duration-200"
+                    onClick={() => handleTravelClick(travel)}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
@@ -324,10 +389,6 @@ export default function DriverDashboard() {
                           <span className="flex items-center gap-1">
                             <Users className="h-3 w-3" />
                             {travel.booked_seats}/{travel.total_seats} passengers
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <TrendingUp className="h-3 w-3" />
-                            {travel.price.toLocaleString()} XOF
                           </span>
                         </div>
                       </div>
@@ -365,7 +426,8 @@ export default function DriverDashboard() {
                 return (
                   <div
                     key={travel.travel_id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-blue-200 hover:bg-blue-50 transition-all duration-200"
+                    className="flex items-center justify-between p-4 rounded-lg border border-gray-200 hover:border-blue-200 hover:bg-blue-50 transition-all duration-200 cursor-pointer"
+                    onClick={() => handleTravelClick(travel)}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -401,9 +463,6 @@ export default function DriverDashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-bold text-green-600 mb-2">
-                        {travel.price.toLocaleString()} XOF
-                      </div>
                       <Badge className={status.color}>
                         {status.icon}
                         <span className="ml-1">{status.label}</span>
@@ -429,6 +488,129 @@ export default function DriverDashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Travel Details Modal */}
+      <Dialog open={isTravelDetailsModalOpen} onOpenChange={setIsTravelDetailsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              Travel Details
+            </DialogTitle>
+            <DialogDescription>
+              Detailed information about this travel and passenger list
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedTravel && (
+            <div className="space-y-6">
+              {/* Travel Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Travel Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Date & Time</p>
+                      <p className="text-lg font-semibold">
+                        {new Date(selectedTravel.travel_date).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(selectedTravel.travel_date).toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Route</p>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-sky-600" />
+                        <span className="text-sky-600 font-medium">{selectedTravel.departure_name}</span>
+                        <RouteIcon className="h-4 w-4 text-gray-400" />
+                        <MapPin className="h-4 w-4 text-orange-600" />
+                        <span className="text-orange-600 font-medium">{selectedTravel.arrival_name}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Bus</p>
+                      <p className="text-lg font-semibold">{assignedBus?.plate_number || "N/A"}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Passenger Count</p>
+                      <p className="text-lg font-semibold">
+                        {selectedTravel.booked_seats}/{selectedTravel.total_seats} passengers
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Passenger List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Passenger List</CardTitle>
+                  <CardDescription>
+                    {passengerDetails.length} passengers booked for this travel
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingPassengers ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-center">
+                        <Users className="h-8 w-8 animate-spin mx-auto mb-2 text-muted-foreground" />
+                        <p className="text-muted-foreground">Loading passenger details...</p>
+                      </div>
+                    </div>
+                  ) : passengerDetails.length > 0 ? (
+                    <div className="space-y-3">
+                      {passengerDetails.map((passenger) => (
+                        <div
+                          key={passenger.booking_id}
+                          className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarImage src="" alt="Passenger" />
+                              <AvatarFallback>
+                                {passenger.user_name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-gray-900">{passenger.user_name}</p>
+                              <p className="text-sm text-gray-600">{passenger.user_email}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant="secondary" className="mb-1">
+                              Seat {passenger.seat_number}
+                            </Badge>
+                            <p className="text-xs text-gray-500">
+                              Booked: {passenger.booking_date}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                      <p className="text-gray-600 font-medium">No passengers booked</p>
+                      <p className="text-sm text-gray-500">No bookings have been made for this travel yet</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
