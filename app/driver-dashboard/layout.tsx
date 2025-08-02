@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getUser, getProfileById } from "@/utils/supabase/queries";
 import { Profile } from "@/types";
+import useLogout from "@/hooks/useLogout";
 import {
   Activity,
   ArrowUpRight,
@@ -48,6 +49,7 @@ export default function DriverDashboardLayout({
   const pathname = usePathname();
   const [userProfile, setUserProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const logout = useLogout();
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -66,24 +68,6 @@ export default function DriverDashboardLayout({
 
     fetchUserData();
   }, []);
-
-  const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Error signing out:", error.message);
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: error.message,
-      });
-    } else {
-      toast({
-        title: "Logout successful!",
-        description: "You will be redirected to login page",
-      });
-      router.push("/auth/login");
-    }
-  };
 
   if (isAuthorized === null) {
     return <div>Loading...</div>;

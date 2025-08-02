@@ -1,11 +1,11 @@
 import { createClient } from "@/utils/supabase/client";
-// import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 
 const supabase = createClient()
 
 const useLogout = () => {
-  // const router = useRouter();
+  const router = useRouter();
   const { toast } = useToast();
 
   const logout = async () => {
@@ -20,9 +20,9 @@ const useLogout = () => {
     } else {
       toast({
         title: "Logout successful!",
-        description: "You will be rdirected to home page",
+        description: "You will be redirected to login page",
       });
-      // router.push("/");
+      router.push("/auth/login");
     }
   };
 
