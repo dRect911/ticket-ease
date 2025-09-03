@@ -59,29 +59,68 @@ export default function MyBookings() {
         const userBookings = allBookings.filter(booking => booking.user_id === userId);
 
         // Fetch detailed information for each booking
+        console.log(`[MyBookings] Processing ${userBookings.length} user bookings`);
+        
         const bookingsWithDetails = await Promise.all(
-          userBookings.map(async (booking) => {
+          userBookings.map(async (booking, index) => {
             try {
+              console.log(`[MyBookings] Processing booking ${index + 1}/${userBookings.length}: ${booking.booking_id}`);
+              
+              // Get ticket with null check
               const ticket = await getTicketById(booking.ticket_id) as Ticket;
+              if (!ticket) {
+                console.error(`[MyBookings] No ticket found for booking: ${booking.booking_id}`);
+                return null;
+              }
+              
+              // Ensure ticket has travel_id before proceeding
+              if (!ticket.travel_id) {
+                console.error(`[MyBookings] Ticket ${ticket.ticket_id} missing travel_id`);
+                return null;
+              }
+              
               const travel = await getTravelById(ticket.travel_id) as Travel;
+              if (!travel) {
+                console.error(`[MyBookings] No travel found for ticket: ${ticket.ticket_id}`);
+                return null;
+              }
               
-              // Get route and location information
-              const routeId = await getRouteIdByTravelId(travel.travel_id);
-              const routeLocations = routeId ? await getRouteLocations(routeId) : null;
+              // Get route and location information with proper error handling
+              let departure_name = "Unknown";
+              let arrival_name = "Unknown";
               
-              const departure_name = routeLocations?.startLocationId 
-                ? await getLocationNameById(routeLocations.startLocationId) as string
-                : "Unknown";
-              const arrival_name = routeLocations?.endLocationId 
-                ? await getLocationNameById(routeLocations.endLocationId) as string
-                : "Unknown";
+              try {
+                const routeId = await getRouteIdByTravelId(travel.travel_id);
+                if (routeId) {
+                  const routeLocations = await getRouteLocations(routeId);
+                  if (routeLocations) {
+                    if (routeLocations.startLocationId) {
+                      const locationName = await getLocationNameById(routeLocations.startLocationId);
+                      departure_name = locationName || "Unknown";
+                    }
+                    if (routeLocations.endLocationId) {
+                      const locationName = await getLocationNameById(routeLocations.endLocationId);
+                      arrival_name = locationName || "Unknown";
+                    }
+                  }
+                }
+              } catch (error) {
+                console.warn(`[MyBookings] Error fetching route/location for travel ${travel.travel_id}:`, error);
+              }
 
-              // Get bus information
-              const busId = await getBusIdByTravelId(travel.travel_id);
-              const bus = busId ? await getBusById(busId) : null;
-              const bus_plate = bus?.plate_number || "N/A";
+              // Get bus information with proper error handling
+              let bus_plate = "N/A";
+              try {
+                const busId = await getBusIdByTravelId(travel.travel_id);
+                if (busId) {
+                  const bus = await getBusById(busId);
+                  bus_plate = bus?.plate_number || "N/A";
+                }
+              } catch (error) {
+                console.warn(`[MyBookings] Error fetching bus for travel ${travel.travel_id}:`, error);
+              }
 
-              return {
+              const result = {
                 ...booking,
                 ticket,
                 travel,
@@ -89,11 +128,14 @@ export default function MyBookings() {
                 arrival_name,
                 bus_plate,
                 travel_date: String(travel.travel_date),
-                price: travel.price,
-                seat_number: ticket.seat_number,
+                price: travel.price || 0,
+                seat_number: ticket.seat_number || 0,
               };
+              
+              console.log(`[MyBookings] Successfully processed booking ${booking.booking_id}`);
+              return result;
             } catch (error) {
-              console.error(`Error fetching details for booking ${booking.booking_id}:`, error);
+              console.error(`[MyBookings] Error fetching details for booking ${booking.booking_id}:`, error);
               return null;
             }
           })
@@ -101,6 +143,8 @@ export default function MyBookings() {
 
         // Filter out any null results and sort by travel date (upcoming first)
         const validBookings = bookingsWithDetails.filter(booking => booking !== null) as BookingWithDetails[];
+        console.log(`[MyBookings] Successfully processed ${validBookings.length}/${userBookings.length} bookings`);
+        
         validBookings.sort((a, b) => new Date(a.travel_date).getTime() - new Date(b.travel_date).getTime());
         
         setUserBookings(validBookings);
