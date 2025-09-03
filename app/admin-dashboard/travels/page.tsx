@@ -3,12 +3,14 @@ import React from 'react'
 
 type Props = {}
 
-const travels = (props: Props) => {
+const TravelsPage = (props: Props) => {
   return (
-    <div className=' p-4 px-64' >
-      <TravelTable />
-    </div>
+    <main className="flex flex-1 flex-col gap-6 p-4 md:gap-8 md:p-8">
+      <div className="mx-auto w-full max-w-7xl">
+        <TravelTable />
+      </div>
+    </main>
   )
 }
 
-export default travels
+export default TravelsPage
