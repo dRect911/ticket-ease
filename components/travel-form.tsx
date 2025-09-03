@@ -66,7 +66,11 @@ interface RouteDetails extends Route {
   arrival_name: string;
 }
 
-const TravelForm = () => {
+interface TravelFormProps {
+  onSuccess?: () => void;
+}
+
+const TravelForm = ({ onSuccess }: TravelFormProps = {}) => {
   const { toast } = useToast();
   const [routes, setRoutes] = useState<RouteDetails[]>([]);
   const [buses, setBuses] = useState<Bus[]>([]);
@@ -111,6 +115,8 @@ const TravelForm = () => {
         title: "Travel scheduled added successfully",
         description: "Check tickets and bookings for more.",
       });
+      form.reset();
+      onSuccess?.();
     } else {
       toast({
         variant: "destructive",
