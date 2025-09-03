@@ -347,67 +347,165 @@ export default function BookingTable() {
   }, [bookings, profiles, travels, tickets, buses, locations, routes]);
 
   const fetchData = async () => {
+    console.log("[BookingTable] fetchData called", {
+      bookings: !!bookings,
+      profiles: !!profiles,
+      travels: !!travels,
+      tickets: !!tickets,
+      buses: !!buses,
+      locations: !!locations,
+      routes: !!routes,
+      bookingsLength: bookings?.length || 0
+    });
+
     // If any required data is missing, show error and do not proceed
     if (!bookings || !profiles || !travels || !tickets || !buses || !locations || !routes) {
-      setCriticalError("Failed to load one or more required datasets (bookings, profiles, travels, tickets, buses, locations, routes). Check network/cache.");
+      const missingData = [];
+      if (!bookings) missingData.push('bookings');
+      if (!profiles) missingData.push('profiles');
+      if (!travels) missingData.push('travels');
+      if (!tickets) missingData.push('tickets');
+      if (!buses) missingData.push('buses');
+      if (!locations) missingData.push('locations');
+      if (!routes) missingData.push('routes');
+      
+      console.error("[BookingTable] Missing required data:", missingData);
+      setCriticalError(`Failed to load required datasets: ${missingData.join(', ')}. Check network/cache.`);
       setLoading(false);
       toast({
         title: "Error",
-        description: "Failed to load booking details (missing required data)",
+        description: `Failed to load booking details (missing: ${missingData.join(', ')})`,
         variant: "destructive",
       });
       return;
     }
+
     setCriticalError(null);
     setLoading(true);
+    
     try {
+      console.log("[BookingTable] Processing bookings:", bookings.length);
+      
       const bookingsWithDetails = await Promise.all(
-        bookings.map(async (booking) => {
-          // Use cached data when available
-          const user_profile = profiles.find(p => p.id === booking.user_id) || 
-            (await getProfileById(booking.user_id)) as Profile;
-          
-          const ticket = tickets.find(t => t.ticket_id === booking.ticket_id) || 
-            (await getTicketById(booking.ticket_id)) as TicketType;
-          
-          const travel = travels.find(t => t.travel_id === ticket.travel_id) || 
-            (await getTravelById(ticket.travel_id)) as Travel;
-          
-          const busId = await getBusIdByTravelId(travel.travel_id);
-          const bus = buses.find(b => b.bus_id === busId) || 
-            (busId ? (await getBusById(busId)) as any : null);
-          const bus_plate = bus?.plate_number || "N/A";
-          
-          const routeId = await getRouteIdByTravelId(travel.travel_id);
-          const route = routes.find(r => r.route_id === routeId);
-          const routeLocations = routeId ? await getRouteLocations(routeId) : null;
-          
-          const departure_name = routeLocations?.startLocationId 
-            ? locations.find(l => l.location_id === routeLocations.startLocationId)?.location_name || 
-              (await getLocationNameById(routeLocations.startLocationId)) as string
-            : "N/A";
-          const arrival_name = routeLocations?.endLocationId 
-            ? locations.find(l => l.location_id === routeLocations.endLocationId)?.location_name || 
-              (await getLocationNameById(routeLocations.endLocationId)) as string
-            : "N/A";
+        bookings.map(async (booking, index) => {
+          try {
+            console.log(`[BookingTable] Processing booking ${index + 1}/${bookings.length}:`, booking.booking_id);
+            
+            // Use cached data when available with null checks
+            let user_profile = profiles.find(p => p.id === booking.user_id);
+            if (!user_profile) {
+              console.log(`[BookingTable] Fetching profile for user: ${booking.user_id}`);
+              user_profile = await getProfileById(booking.user_id) as Profile;
+              if (!user_profile) {
+                console.warn(`[BookingTable] No profile found for user: ${booking.user_id}`);
+                user_profile = { id: booking.user_id, first_name: "Unknown", last_name: "User" } as Profile;
+              }
+            }
+            
+            let ticket = tickets.find(t => t.ticket_id === booking.ticket_id);
+            if (!ticket) {
+              console.log(`[BookingTable] Fetching ticket: ${booking.ticket_id}`);
+              ticket = await getTicketById(booking.ticket_id) as TicketType;
+              if (!ticket) {
+                console.error(`[BookingTable] No ticket found for booking: ${booking.booking_id}`);
+                return null; // Skip this booking if ticket is missing
+              }
+            }
+            
+            // Ensure ticket has travel_id before proceeding
+            if (!ticket.travel_id) {
+              console.error(`[BookingTable] Ticket ${ticket.ticket_id} missing travel_id`);
+              return null;
+            }
+            
+            let travel = travels.find(t => t.travel_id === ticket.travel_id);
+            if (!travel) {
+              console.log(`[BookingTable] Fetching travel: ${ticket.travel_id}`);
+              travel = await getTravelById(ticket.travel_id) as Travel;
+              if (!travel) {
+                console.error(`[BookingTable] No travel found for ticket: ${ticket.ticket_id}`);
+                return null;
+              }
+            }
+            
+            // Get bus information with proper error handling
+            let bus_plate = "N/A";
+            try {
+              const busId = await getBusIdByTravelId(travel.travel_id);
+              if (busId) {
+                const bus = buses.find(b => b.bus_id === busId) || (await getBusById(busId));
+                bus_plate = bus?.plate_number || "N/A";
+              }
+            } catch (error) {
+              console.warn(`[BookingTable] Error fetching bus for travel ${travel.travel_id}:`, error);
+            }
+            
+            // Get route and location information with proper error handling
+            let departure_name = "N/A";
+            let arrival_name = "N/A";
+            
+            try {
+              const routeId = await getRouteIdByTravelId(travel.travel_id);
+              if (routeId) {
+                const routeLocations = await getRouteLocations(routeId);
+                if (routeLocations) {
+                  // Get departure location
+                  if (routeLocations.startLocationId) {
+                    const departureLocation = locations.find(l => l.location_id === routeLocations.startLocationId);
+                    if (departureLocation) {
+                      departure_name = departureLocation.location_name;
+                    } else {
+                      const locationName = await getLocationNameById(routeLocations.startLocationId);
+                      departure_name = locationName || "Unknown";
+                    }
+                  }
+                  
+                  // Get arrival location
+                  if (routeLocations.endLocationId) {
+                    const arrivalLocation = locations.find(l => l.location_id === routeLocations.endLocationId);
+                    if (arrivalLocation) {
+                      arrival_name = arrivalLocation.location_name;
+                    } else {
+                      const locationName = await getLocationNameById(routeLocations.endLocationId);
+                      arrival_name = locationName || "Unknown";
+                    }
+                  }
+                }
+              }
+            } catch (error) {
+              console.warn(`[BookingTable] Error fetching route/location for travel ${travel.travel_id}:`, error);
+            }
 
-          return {
-            ...booking,
-            user_profile,
-            ticket,
-            travel,
-            bus_plate,
-            departure_name,
-            arrival_name,
-            travel_date: String(travel.travel_date),
-            seat_number: ticket.seat_number,
-            price: travel.price,
-          };
+            const result = {
+              ...booking,
+              user_profile,
+              ticket,
+              travel,
+              bus_plate,
+              departure_name,
+              arrival_name,
+              travel_date: String(travel.travel_date),
+              seat_number: ticket.seat_number || 0,
+              price: travel.price || 0,
+            };
+            
+            console.log(`[BookingTable] Successfully processed booking ${booking.booking_id}`);
+            return result;
+            
+          } catch (error) {
+            console.error(`[BookingTable] Error processing booking ${booking.booking_id}:`, error);
+            return null; // Skip this booking on error
+          }
         })
       );
-      setData(bookingsWithDetails);
+      
+      // Filter out null results (failed bookings)
+      const validBookings = bookingsWithDetails.filter(booking => booking !== null);
+      console.log(`[BookingTable] Successfully processed ${validBookings.length}/${bookings.length} bookings`);
+      
+      setData(validBookings);
     } catch (error) {
-      console.error("Error fetching booking details:", error);
+      console.error("[BookingTable] Critical error in fetchData:", error);
       setCriticalError("Failed to process booking details. See console for details.");
       toast({
         title: "Error",
@@ -420,7 +518,13 @@ export default function BookingTable() {
   };
 
   React.useEffect(() => {
-    fetchData();
+    // Only fetch data when all required data is available
+    if (bookings && profiles && travels && tickets && buses && locations && routes) {
+      console.log("[BookingTable] All dependencies loaded, starting fetchData");
+      fetchData();
+    } else {
+      console.log("[BookingTable] Waiting for dependencies to load...");
+    }
   }, [bookings, profiles, travels, tickets, buses, locations, routes]);
 
   const table = useReactTable({
